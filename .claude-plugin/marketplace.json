@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "spec-plugin",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Spec-driven product development pipeline — from ideation to verified code, orchestrated by AI agents",
   "owner": {
     "name": "Jaison Erick",
@@ -11,7 +11,7 @@
     {
       "name": "spec-plugin",
       "description": "Spec-driven product development pipeline with 5 agents and 11 skills. Full flow: /ideate → /architect → /plan → /orchestrate (coordinates architect, product-owner, engineer, designer, and QA agents through architecture, stories, implementation, testing, and retrospectives).",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "Jaison Erick",
         "email": "jaison@jaisonerick.com"

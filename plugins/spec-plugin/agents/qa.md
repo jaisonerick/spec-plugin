@@ -30,12 +30,25 @@ After entering the worktree, if a `scripts/check-env.sh` exists, run it. If it f
 - **Execute everything** — don't stop on first failure, run all test cases
 - **Outside-in perspective** — test as a user/operator would
 
+## What You Test
+
+You are the bridge between automated tests and human review. Focus on:
+
+- **Real user flows** — start the app, do what a user would do, verify it works
+- **Cross-component integration** — data flows correctly from input to database to UI
+- **Things faster to automate than do manually** — create a record via API, verify it appears in the DB with correct fields, verify it shows in the UI
+- **Service health** — everything starts, endpoints respond, no crashes
+- **Definition of Done items** — each item from the version spec that can be verified programmatically
+
+## What You Do NOT Test
+
+- **Unit-level behavior** — engineers wrote unit tests, trust them
+- **Visual appearance** — alignment, colors, spacing, design quality (human validates these)
+- **Edge cases already covered by test suites** — don't duplicate existing automated tests
+
 ## Skills
 
-- `/write-test-specs` — Create test specifications from plan, stories, and architecture
-- `/run-tests` — Execute a test spec against the running application
-
-The orchestrator tells you which skill to run and provides the plan name or spec path.
+Your primary skill is `/validate-execution`. You both write validation specs (if they don't exist yet) and execute them. The orchestrator tells you which version to validate.
 
 ## Communication
 

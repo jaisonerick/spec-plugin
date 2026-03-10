@@ -1,125 +1,170 @@
 ---
 name: plan
-description: "Break a product specification into multiple execution plans (plan-N-name.md) and a roadmap. Each plan is a self-contained phase with clear inputs, outputs, and validation gate. Produces files like specs/plan-1-extraction.md and specs/roadmap.md. Use after /ideate and /architect have produced the product spec and architecture."
-argument-hint: "[project name, e.g. corpus-graph-builder]"
+description: "Design an evolutionary product roadmap through conversational refinement. Defines version progression (V0.1 → V1.0+) where each version delivers user-visible value. Produces version specs and a roadmap. Use after /ideate and /architect."
+argument-hint: "[project name]"
 ---
 
-Your task: decompose a product specification into ordered, self-contained execution plans with a roadmap that ties them together.
+Your task: design an evolutionary product roadmap by working with the user to decide what gets built first, what comes next, and what "done" looks like for each version.
+
+## Philosophy
+
+You are a product manager. Your job is to help the user decide the **order** in which their product comes to life. Each version is defined by what the user can do with it — not by what the engineer builds.
+
+- **Every version is usable.** Even the first version does one real thing end-to-end.
+- **The user decides priority.** You propose, they choose. Never assume what matters most.
+- **Versions describe outcomes, not tasks.** "User can push a Markdown file and get a Google Doc" — not "implement parser module."
+- **Simple before complete.** The first version of any capability is the simplest version that works. Later versions refine it.
 
 ## Phase 1 — Load Context
 
 1. Read the product spec: `specs/<project-name>.md`
 2. Read the architecture: `specs/architecture.md`
-3. Check if any `specs/plan-*.md` files already exist
-4. If plans exist, ask the user whether to redo or extend
+3. Check if any `specs/v*.md` version files or `specs/roadmap.md` already exist
 
-## Phase 2 — Identify Plan Boundaries
+**If versions already exist**, proceed to the Re-Planning Flow (Phase 1B).
+**If no versions exist**, proceed to Phase 2.
 
-Analyze the product spec to find natural plan boundaries. Look for:
+### Phase 1B — Re-Planning Flow
 
-- **Pipeline phases** — each phase or group of tightly coupled phases is a candidate plan
-- **Dependency chains** — what must exist before something else can start
-- **Parallel tracks** — work that can proceed independently (e.g., data processing vs. UI)
-- **Validation gates** — natural checkpoints where you can verify correctness before proceeding
+When the user calls `/plan` on an already-planned project, they want one of two things. Ask them:
 
-### Principles for Plan Decomposition
+**Ask via AskUserQuestion:** "You already have a roadmap. What would you like to do?"
+- **Change scope or priorities** — Reorder versions, move features between versions, or remove/add features within existing versions.
+- **Expand the product** — Add new capabilities that weren't in the original spec. This likely means the product spec and architecture need updating too.
 
-- **Each plan is self-contained**: clear inputs, clear outputs, independently validatable
-- **Plans build on each other**: Plan N's output is Plan N+1's input
-- **Infrastructure first**: foundational setup (project scaffolding, providers, database schema, pipeline engine) is always Plan 0
-- **Separate tracks when possible**: data processing and UI/platform work can be interleaved as separate tracks (e.g., Plan 1 data, Plan 1.5 UI for Plan 1's data)
-- **Don't over-split**: a plan should be substantial enough to deliver value, not just a single component
-- **Don't under-split**: a plan that would take weeks of AI agent work should be broken further
+**If changing scope/priorities:**
+1. Show the current version sequence with a one-line summary each.
+2. Ask the user what they want to change. Examples: "Move X from V0.3 to V0.2", "Split V0.4 into two versions", "Swap the order of V0.3 and V0.4."
+3. Walk through the impact: if moving a feature earlier, what dependencies does it pull forward? If deferring something, does anything else depend on it?
+4. Update affected version specs and the roadmap.
 
-### Plan Numbering Convention
+**If expanding the product:**
+1. Discuss the new capabilities with the user to understand scope.
+2. Flag that the product spec (`specs/<project-name>.md`) and architecture (`specs/architecture.md`) may need updates. Ask: "Should we update the product spec and architecture first, or sketch the versions and revisit those after?"
+3. If updating specs first: guide the user to run `/ideate` and `/architect` to amend those docs, then return to `/plan`.
+4. If sketching first: proceed with version planning, but note in the roadmap which spec/architecture sections need review.
 
-- Integer plans (0, 1, 2, 3, 4) for the primary track (usually data/processing)
-- Half-integer plans (1.5, 3.5) for secondary tracks (usually UI/platform) that depend on a primary plan's output
-- Plan 0 is always infrastructure/scaffolding
+## Phase 2 — Identify the Core
 
-## Phase 3 — Consult User
+Start from the product spec and ask the user to help you find the core.
 
-Present the proposed plan breakdown to the user via AskUserQuestion:
+**Ask via AskUserQuestion:** "Looking at your product spec, what is the ONE thing this product must do? If it only did this one thing, would it still be worth building?"
 
-- Show the plan sequence as an ASCII diagram (like a roadmap's plan sequence)
-- For each plan: name, which spec phases it covers, key inputs/outputs
-- Identify the tracks (data vs. platform, or whatever tracks emerge)
-- Highlight any judgment calls: "Should X be in Plan 2 or Plan 3?"
+This answer becomes V0.1 — the minimum viable version. Everything else layers on top.
 
-Iterate until the user approves the plan structure.
+## Phase 3 — Build the Version Sequence
 
-## Phase 4 — Write Plan Specs
+This is the most interactive phase. You'll work with the user to decide what goes into each version, one version at a time.
 
-For each plan, write `specs/plan-N-name.md` with this structure:
+### Step 1: List the Capabilities
+
+From the product spec, extract every distinct capability the product offers. Present them as a flat list to the user. Examples of capabilities (not tasks):
+- "User can do X"
+- "Product supports Y"
+- "Z is configurable"
+
+### Step 2: Identify What V0.1 Needs
+
+Given the core from Phase 2, ask the user which capabilities are **essential** for the first version vs. which can be simplified or skipped.
+
+**Ask via AskUserQuestion** for each decision point. Common patterns:
+- "V0.1 needs to do X. Should it use hardcoded defaults, or does it need configuration from the start?"
+- "The spec mentions A, B, and C. Which of these are needed for the core experience?"
+- "X depends on an external service. Should V0.1 work without it (e.g., mock/skip), or is it essential?"
+
+### Step 3: Layer Remaining Capabilities
+
+After V0.1 is defined, present the remaining capabilities and ask the user to prioritize them into subsequent versions.
+
+**Ask via AskUserQuestion:** Present 3-5 remaining capabilities and ask which should come next. Repeat for each version until all capabilities are placed.
+
+For each version, challenge the user:
+- "Is this version doing too much? Should we split it?"
+- "This capability has a simple version and a full version. Should V0.X ship the simple version, with the full version in a later release?"
+- "These two capabilities are independent. Should they be in the same version or separate?"
+
+### Step 4: Define the V1.0 Milestone
+
+Once all capabilities are placed, ask the user:
+
+**Ask via AskUserQuestion:** "Which version is your V1.0 — the first version you'd give to someone else? What must be true for that?"
+
+Everything before V1.0 is V0.x (development versions). V1.0 and beyond are release versions.
+
+### Version Numbering
+
+- **V0.x** (0.1, 0.2, ...) — Development versions. Each adds capability. May have rough edges, simplified behavior, or require manual setup.
+- **V1.0** — First version ready for other people. Distribution, onboarding, and core features complete.
+- **V1.x** (1.1, 1.2, ...) — Post-release enhancements.
+
+## Phase 4 — Write Version Specs
+
+For each version, write `specs/vX.Y-short-name.md` with this structure:
 
 ```markdown
-# Plan N: Plan Title
+# VX.Y: Version Title
 
-> Phase(s) X of the <Project Name>.
-> Prerequisite: [Plan N-1 — Title](plan-N-1-name.md).
-> Feeds into: [Plan N+1 — Title](plan-N+1-name.md).
+> Builds on: [VX.Y-1 — Title](vX.Y-1-short-name.md) (or "New project" for V0.1).
+> Next: [VX.Y+1 — Title](vX.Y+1-short-name.md).
 
-## Goal
+## What's New
 
-What the system has at the end of this plan that it didn't have before.
-2-3 paragraphs maximum. Be specific about artifacts produced.
+One paragraph: what changes for the user in this version.
+Focus on outcomes — what they can do now that they couldn't before.
 
-## Input
+## Demo
 
-What this plan operates on. List the concrete artifacts, databases,
-or services that must exist before this plan starts.
+Concrete example of using the product after this version ships.
+Show the exact commands, inputs, and expected outputs a user would see.
 
-## Process
+## Capabilities
 
-### Step 1: Step Title
+### Added in this version:
+- (bulleted list of user-visible capabilities)
 
-What happens, why, and what it produces. Include enough detail that
-an architect can make technology choices and an engineer can implement it.
+### Simplified in this version (improved later):
+- (things that work but in a limited way — reference which version improves them)
 
-### Step 2: Step Title
+### Not yet available:
+- (explicit list of what's deferred — reference which version adds it)
 
-(repeat for each step)
+## Definition of Done
 
-## Output
+Checklist of concrete, verifiable conditions that must be true for this version
+to be considered shipped. Written from the user's perspective.
 
-| Artifact | Location | Description |
-|----------|----------|-------------|
-| ... | ... | ... |
-
-## Boundaries
-
-**This plan does NOT:**
-- (explicit list of what's out of scope — reference which plan handles it)
-
-**This plan DOES:**
-- (explicit list of what's in scope)
+- [ ] User can do X and sees Y
+- [ ] Z works in scenario A and scenario B
+- [ ] (etc.)
 
 ## Open Questions
 
-- Unresolved decisions for this plan's architecture phase
+- Decisions that may need to be made during implementation
 ```
 
 ### Writing Principles
 
-- **Each plan must be readable standalone.** A reader shouldn't need to read 3 other plans to understand what this one does.
-- **Boundaries are critical.** Explicitly state what this plan does NOT do and which plan handles it. This prevents scope creep during implementation.
-- **Steps describe WHAT and WHY, not HOW.** Technology choices belong in the architecture doc, not the plan spec.
-- **Open questions are per-plan.** They should be answerable during that plan's architecture phase.
+- **Each version spec is readable standalone.** A reader should understand what this version delivers without reading other specs.
+- **Demo is mandatory.** If you can't write a concrete demo, the version scope is unclear. Go back and clarify.
+- **Definition of Done is the contract.** The orchestrator uses this to know when a version is shipped. Be specific and testable.
+- **No implementation details.** Don't mention modules, packages, functions, or architecture. That's for the execution phase.
+- **"Simplified in this version" is intentional.** It signals that the team shouldn't over-build — ship the simple version now, improve it later.
 
 ## Phase 5 — Write Roadmap
 
 Write `specs/roadmap.md` with:
 
-1. **Overview** — How the project is organized, what the tracks are
-2. **Plan Sequence** — ASCII diagram showing all plans with inputs/outputs
-3. **How Plans Connect** — For each plan transition, explain what Plan N produces that Plan N+1 needs. Be specific about artifacts and interfaces.
-4. **Validation Gates** — Table with one row per plan, describing what must be true before moving to the next plan
-5. **File Organization** — Show the `specs/` directory structure
+1. **Vision** — One paragraph: what the product is and who it's for.
+2. **Version Progression** — Diagram showing all versions with what each adds.
+3. **Milestones** — Key checkpoints on the way to V1.0 and beyond.
+4. **V1.0 Release Criteria** — What must be true for the product to be ready for others.
+5. **Post-V1.0 Direction** — Brief list of V1.x enhancements (high-level, just direction).
+6. **Spec Review Notes** — If the roadmap surfaced gaps in the product spec or architecture, list what needs review.
 
 ## Phase 6 — Final Review
 
 Present a summary to the user:
-- Total number of plans, organized by track
-- The dependency graph between plans
-- Any plans that feel risky or uncertain
-- Suggested next step: "Run `/orchestrate <plan-name>` to execute each plan in order. The orchestrator will handle per-plan architecture, story breakdown, implementation, and QA."
+- The version sequence from V0.1 to V1.0+
+- Key milestones and what makes V1.0 special
+- Any versions that feel uncertain or risky
+- Suggested next step: "Run `/orchestrate <version>` to execute each version in order, starting with V0.1. The orchestrator handles architecture, story breakdown, implementation, and QA for each version."

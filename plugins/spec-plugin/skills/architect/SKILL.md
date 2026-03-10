@@ -4,18 +4,18 @@ description: "Create the high-level technical architecture for an entire project
 argument-hint: "[project name, e.g. corpus-graph-builder]"
 ---
 
-Your task: produce a comprehensive technical architecture document that makes every foundational technology choice explicit, with rationale. This is the PROJECT-LEVEL architecture — it covers decisions shared across ALL plans. Individual plans get their own architecture docs via `/architect-plan`.
+Your task: produce a comprehensive technical architecture document that makes every foundational technology choice explicit, with rationale. This is the PROJECT-LEVEL architecture — it covers decisions shared across ALL versions. Individual versions get their own architecture docs via `/architect-version`.
 
 ## Phase 1 — Load Context
 
 1. Read the product spec: `specs/<project-name>.md`
 2. If `specs/roadmap.md` exists, read it for additional context
-3. If any `specs/plan-*.md` files exist, skim them for additional context
+3. If any `specs/v*.md` version files exist, skim them for additional context
 4. Check if `specs/architecture.md` already exists — if so, ask user whether to redo or revise
 
 ## Phase 2 — Identify Decision Points
 
-Catalog every foundational technical decision needed across all plans:
+Catalog every foundational technical decision needed across the project:
 
 ### Categories to Cover
 
@@ -72,7 +72,7 @@ Write `specs/architecture.md` with these sections:
 
 4. **Configuration** — Show the actual config file format with all settings, commented. Show environment variables needed.
 
-5. **API Routes** — Full list of API endpoints grouped by domain. Include HTTP method, path, and brief description. Detailed request/response shapes go in plan-level architecture docs.
+5. **API Routes** — Full list of API endpoints grouped by domain. Include HTTP method, path, and brief description. Detailed request/response shapes go in per-version architecture docs.
 
 6. **Database Schemas** — Full schema definitions for every database. For SQL: CREATE TABLE statements with comments. For graph DBs: node labels, relationship types, constraints, indexes.
 
@@ -94,7 +94,7 @@ Write `specs/architecture.md` with these sections:
 
 - **Show, don't tell.** Include actual schema definitions, config file examples, code patterns, and directory trees — not just descriptions of them.
 - **Rationale everywhere.** Every technology choice should have a "Why" that connects back to project constraints or requirements.
-- **Cross-reference plans.** Note which plan introduces each component.
+- **Cross-reference versions.** Note which version introduces each component.
 - **Concrete over abstract.** Show actual queries, actual schemas, actual config — not pseudocode descriptions.
 - **Diagrams for system topology.** Use ASCII art for complex system architecture diagrams.
 
@@ -113,8 +113,8 @@ Before finalizing, verify:
 Present a summary to the user:
 - Technology stack overview (one line per layer)
 - Key decisions made and their rationale
-- Any deferred decisions (and which plan's architecture phase will resolve them)
+- Any deferred decisions (and which version's architecture phase will resolve them)
 - Risks or concerns
-- Suggested next step: "Run `/plan <project-name>` to break the spec into execution plans, then `/orchestrate <plan-name>` to execute each plan."
+- Suggested next step: "Run `/plan <project-name>` to design the version roadmap, then `/orchestrate <version>` to execute each version."
 
 Ask for final sign-off before considering the architecture complete.
