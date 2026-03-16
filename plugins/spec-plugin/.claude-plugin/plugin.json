@@ -1,7 +1,7 @@
 {
   "name": "spec-plugin",
-  "version": "1.0.0",
-  "description": "Spec-driven product development pipeline — from ideation to verified code, orchestrated by AI agents",
+  "version": "3.0.0",
+  "description": "Spec-driven project execution pipeline — from ideation to verified deliverables, orchestrated by AI agents. Works with any project type.",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"
