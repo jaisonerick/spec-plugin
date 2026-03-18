@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v4] - 2026-03-18
+
+### Changed
+- fix: use url source for interface-design to force HTTPS cloning
+
 ## [Marketplace v3] - 2026-03-18
 
 ### Changed
