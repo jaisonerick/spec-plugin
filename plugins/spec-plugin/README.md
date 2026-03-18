@@ -115,8 +115,8 @@ The `specs/` directory lives wherever the project lives — repo root, a subdire
 ## Installation
 
 ```
-/plugin marketplace add spec-plugin --source github --repo jaisonerick/spec-plugin
-/plugin install spec-plugin@spec-plugin
+/plugin marketplace add claude-marketplace --source github --repo jaisonerick/spec-plugin
+/plugin install spec-plugin@claude-marketplace
 ```
 
 ## Optional Dependencies

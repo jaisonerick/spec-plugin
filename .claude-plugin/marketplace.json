@@ -1,7 +1,7 @@
 {
-  "name": "spec-plugin",
+  "name": "claude-marketplace",
   "metadata": {
-    "description": "Spec-driven project execution pipeline — from ideation to verified deliverables, orchestrated by AI agents. Works with any project type: code, business, research, consulting.",
+    "description": "Jaison Erick's Claude Code plugin marketplace.",
     "version": "1.0.0"
   },
   "owner": {

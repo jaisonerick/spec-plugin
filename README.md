@@ -1,12 +1,12 @@
-# Spec Plugin Marketplace
+# Claude Marketplace
 
-Claude Code plugin marketplace for spec-driven product development.
+Jaison Erick's Claude Code plugin marketplace.
 
 ## Install
 
 ```
-/plugin marketplace add spec-plugin --source github --repo jaisonerick/spec-plugin
-/plugin install spec-plugin@spec-plugin
+/plugin marketplace add claude-marketplace --source github --repo jaisonerick/spec-plugin
+/plugin install spec-plugin@claude-marketplace
 ```
 
 ## Plugins

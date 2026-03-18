@@ -1,6 +1,6 @@
-# Spec Plugin Marketplace
+# Claude Marketplace
 
-This is a Claude Code **plugin marketplace** repository containing the `spec-plugin` plugin.
+This is a Claude Code **plugin marketplace** repository. It can contain multiple plugins.
 
 ## Repository Structure
 
@@ -98,6 +98,6 @@ Reload after changes (inside Claude Code):
 
 Users install via:
 ```
-/plugin marketplace add spec-plugin --source github --repo jaisonerick/spec-plugin
-/plugin install spec-plugin@spec-plugin
+/plugin marketplace add claude-marketplace --source github --repo jaisonerick/spec-plugin
+/plugin install spec-plugin@claude-marketplace
 ```
