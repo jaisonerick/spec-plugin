@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v5] - 2026-03-18
+
+### Changed
+- feat: add chrome-devtools-mcp plugin from ChromeDevTools/chrome-devtools-mcp
+
 ## [Marketplace v4] - 2026-03-18
 
 ### Changed
