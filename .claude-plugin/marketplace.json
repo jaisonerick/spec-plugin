@@ -17,8 +17,8 @@
     {
       "name": "interface-design",
       "source": {
-        "source": "github",
-        "repo": "Dammyjay93/interface-design"
+        "source": "url",
+        "url": "https://github.com/Dammyjay93/interface-design.git"
       }
     },
     {
