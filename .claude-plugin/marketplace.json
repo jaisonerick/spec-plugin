@@ -1,8 +1,9 @@
 {
-  "name": "claude-marketplace",
+  "name": "nexaedge-marketplace",
   "metadata": {
     "description": "Jaison Erick's Claude Code plugin marketplace.",
-    "version": "1.0.0"
+    "version": "v1",
+    "pluginRoot": "./plugins"
   },
   "owner": {
     "name": "Jaison Erick",
@@ -11,13 +12,14 @@
   "plugins": [
     {
       "name": "spec-plugin",
-      "description": "Context-aware project execution pipeline with 5 agents and 9 skills. Adapts to any project type (code, business, research). Full flow: /ideate → /architect → /plan → /orchestrate.",
-      "author": {
-        "name": "Jaison Erick",
-        "email": "jaison@jaisonerick.com"
-      },
-      "source": "./plugins/spec-plugin",
-      "category": "development"
+      "source": "./spec-plugin"
+    },
+    {
+      "name": "interface-design",
+      "source": {
+        "source": "github",
+        "repo": "Dammyjay93/interface-design"
+      }
     }
   ]
 }

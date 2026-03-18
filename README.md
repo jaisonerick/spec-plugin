@@ -5,8 +5,8 @@ Jaison Erick's Claude Code plugin marketplace.
 ## Install
 
 ```
-/plugin marketplace add claude-marketplace --source github --repo nexaedge/claude-marketplace
-/plugin install spec-plugin@claude-marketplace
+/plugin marketplace add nexaedge-marketplace --source github --repo nexaedge/claude-marketplace
+/plugin install spec-plugin@nexaedge-marketplace
 ```
 
 ## Plugins

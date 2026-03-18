@@ -1,12 +1,9 @@
 {
   "name": "spec-plugin",
-  "version": "3.1.0",
+  "version": "v4",
   "description": "Spec-driven project execution pipeline — from ideation to verified deliverables, orchestrated by AI agents. Works with any project type.",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"
-  },
-  "repository": "https://github.com/nexaedge/claude-marketplace",
-  "license": "MIT",
-  "keywords": ["spec-driven", "orchestration", "agents", "pipeline", "ideation", "architecture", "qa"]
+  }
 }

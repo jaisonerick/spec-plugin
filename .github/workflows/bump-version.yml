@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect what changed
+      - name: Detect changed plugins
         id: changes
         run: |
           CHANGED=$(git diff --name-only HEAD~1 HEAD)
@@ -25,11 +25,15 @@ jobs:
           echo "$CHANGED" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-          if echo "$CHANGED" | grep -q '^plugins/spec-plugin/'; then
-            echo "plugin_changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "plugin_changed=false" >> "$GITHUB_OUTPUT"
-          fi
+          # Find all local plugins that had file changes
+          CHANGED_PLUGINS=""
+          for plugin_dir in plugins/*/; do
+            plugin_name=$(basename "$plugin_dir")
+            if echo "$CHANGED" | grep -q "^plugins/${plugin_name}/"; then
+              CHANGED_PLUGINS="${CHANGED_PLUGINS:+$CHANGED_PLUGINS }${plugin_name}"
+            fi
+          done
+          echo "changed_plugins=$CHANGED_PLUGINS" >> "$GITHUB_OUTPUT"
 
           if echo "$CHANGED" | grep -qE '^\.claude-plugin/|^README\.md$|^CLAUDE\.md$'; then
             echo "marketplace_changed=true" >> "$GITHUB_OUTPUT"
@@ -37,45 +41,65 @@ jobs:
             echo "marketplace_changed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Bump plugin version
-        if: steps.changes.outputs.plugin_changed == 'true'
+      - name: Bump plugin versions
+        if: steps.changes.outputs.changed_plugins != ''
         run: |
-          CURRENT=$(jq -r '.version' plugins/spec-plugin/.claude-plugin/plugin.json)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
-          jq --arg v "$NEW_VERSION" '.version = $v' plugins/spec-plugin/.claude-plugin/plugin.json > tmp.json
-          mv tmp.json plugins/spec-plugin/.claude-plugin/plugin.json
-          echo "PLUGIN_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
-          echo "Bumped plugin: $CURRENT → $NEW_VERSION"
+          COMMIT_MSG=$(git log -1 --format='%s' HEAD)
+          BUMPED_PLUGINS=""
+
+          for plugin_name in ${{ steps.changes.outputs.changed_plugins }}; do
+            MANIFEST="plugins/${plugin_name}/.claude-plugin/plugin.json"
+            if [ ! -f "$MANIFEST" ]; then
+              echo "Skipping ${plugin_name}: no plugin.json found"
+              continue
+            fi
+
+            CURRENT=$(jq -r '.version // "0"' "$MANIFEST")
+            # Strip leading 'v' if present
+            CURRENT_NUM=${CURRENT#v}
+            NEW_VERSION="v$(( CURRENT_NUM + 1 ))"
+
+            jq --arg v "$NEW_VERSION" '.version = $v' "$MANIFEST" > tmp.json
+            mv tmp.json "$MANIFEST"
+            echo "Bumped ${plugin_name}: ${CURRENT} → ${NEW_VERSION}"
+            BUMPED_PLUGINS="${BUMPED_PLUGINS:+$BUMPED_PLUGINS, }${plugin_name} ${NEW_VERSION}"
+          done
+
+          echo "BUMPED_PLUGINS=$BUMPED_PLUGINS" >> "$GITHUB_ENV"
 
       - name: Bump marketplace version
         if: steps.changes.outputs.marketplace_changed == 'true'
         run: |
-          CURRENT=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          CURRENT=$(jq -r '.metadata.version // "0"' .claude-plugin/marketplace.json)
+          CURRENT_NUM=${CURRENT#v}
+          NEW_VERSION="v$(( CURRENT_NUM + 1 ))"
           jq --arg v "$NEW_VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > tmp.json
           mv tmp.json .claude-plugin/marketplace.json
           echo "MARKETPLACE_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
           echo "Bumped marketplace: $CURRENT → $NEW_VERSION"
 
       - name: Update CHANGELOG
-        if: steps.changes.outputs.plugin_changed == 'true' || steps.changes.outputs.marketplace_changed == 'true'
+        if: steps.changes.outputs.changed_plugins != '' || steps.changes.outputs.marketplace_changed == 'true'
         run: |
           DATE=$(date +%Y-%m-%d)
+          COMMIT_MSG=$(git log -1 --format='%s' HEAD)
           ENTRY=""
 
-          if [ -n "${PLUGIN_VERSION:-}" ]; then
-            COMMIT_MSG=$(git log -1 --format='%s' HEAD)
-            ENTRY="${ENTRY}## [Plugin: spec-plugin v${PLUGIN_VERSION}] - ${DATE}\n\n### Changed\n- ${COMMIT_MSG}\n\n"
+          if [ -n "${BUMPED_PLUGINS:-}" ]; then
+            for plugin_name in ${{ steps.changes.outputs.changed_plugins }}; do
+              MANIFEST="plugins/${plugin_name}/.claude-plugin/plugin.json"
+              if [ -f "$MANIFEST" ]; then
+                VERSION=$(jq -r '.version' "$MANIFEST")
+                ENTRY="${ENTRY}## [Plugin: ${plugin_name} ${VERSION}] - ${DATE}\n\n### Changed\n- ${COMMIT_MSG}\n\n"
+              fi
+            done
           fi
 
           if [ -n "${MARKETPLACE_VERSION:-}" ]; then
-            COMMIT_MSG=$(git log -1 --format='%s' HEAD)
-            ENTRY="${ENTRY}## [Marketplace v${MARKETPLACE_VERSION}] - ${DATE}\n\n### Changed\n- ${COMMIT_MSG}\n\n"
+            ENTRY="${ENTRY}## [Marketplace ${MARKETPLACE_VERSION}] - ${DATE}\n\n### Changed\n- ${COMMIT_MSG}\n\n"
           fi
 
-          # Insert after the versioning note (line 8, after the blank line following the bullet list)
+          # Insert before the first existing version entry
           awk -v entry="$ENTRY" '
             /^## \[/ && !inserted {
               printf entry
@@ -86,15 +110,15 @@ jobs:
           mv tmp_changelog.md CHANGELOG.md
 
       - name: Commit and push
-        if: steps.changes.outputs.plugin_changed == 'true' || steps.changes.outputs.marketplace_changed == 'true'
+        if: steps.changes.outputs.changed_plugins != '' || steps.changes.outputs.marketplace_changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           PARTS=""
-          [ -n "${PLUGIN_VERSION:-}" ] && PARTS="plugin v${PLUGIN_VERSION}"
-          [ -n "${MARKETPLACE_VERSION:-}" ] && PARTS="${PARTS:+$PARTS, }marketplace v${MARKETPLACE_VERSION}"
+          [ -n "${BUMPED_PLUGINS:-}" ] && PARTS="$BUMPED_PLUGINS"
+          [ -n "${MARKETPLACE_VERSION:-}" ] && PARTS="${PARTS:+$PARTS, }marketplace ${MARKETPLACE_VERSION}"
 
-          git add plugins/spec-plugin/.claude-plugin/plugin.json .claude-plugin/marketplace.json CHANGELOG.md
+          git add "plugins/"*"/.claude-plugin/plugin.json" .claude-plugin/marketplace.json CHANGELOG.md
           git commit -m "chore: bump ${PARTS} [skip-bump]"
           git push
