@@ -115,7 +115,7 @@ The `specs/` directory lives wherever the project lives — repo root, a subdire
 ## Installation
 
 ```
-/plugin marketplace add nexaedge-marketplace --source github --repo nexaedge/claude-marketplace
+/plugin marketplace add nexaedge-marketplace --source github --repo nexaedge/nexaedge-marketplace
 /plugin install spec-plugin@nexaedge-marketplace
 ```
 
