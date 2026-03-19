@@ -193,14 +193,14 @@ deploy() {
 
   print_summary "$version_before" "$version_after" "${changed_plugins[@]+"${changed_plugins[@]}"}"
 
-  # Offer to install newly added plugins
+  # Handle local plugin install/uninstall
   local -a seen_plugins=()
   for entry in "${changed_plugins[@]+"${changed_plugins[@]}"}"; do
-    [[ "${entry:0:1}" != "+" ]] && continue
+    local action="${entry:0:1}"
     local target="${entry:1}"
     local pname="${target%%/*}"
 
-    # Skip if already prompted for this plugin
+    # Deduplicate per plugin
     local already=0
     for s in "${seen_plugins[@]+"${seen_plugins[@]}"}"; do
       [[ "$s" == "$pname" ]] && already=1 && break
@@ -208,15 +208,24 @@ deploy() {
     [[ $already -eq 1 ]] && continue
     seen_plugins+=("$pname")
 
-    # Check if already installed
-    if claude plugin list 2>/dev/null | grep -q "${pname}@nexaedge-marketplace"; then
-      continue
-    fi
+    local is_installed=0
+    claude plugin list 2>/dev/null | grep -q "${pname}@nexaedge-marketplace" && is_installed=1
 
-    echo ""
-    read -rp "Install '$pname' at user level? [y/N] " answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
-      claude plugin install "${pname}@nexaedge-marketplace" --scope user
-    fi
+    case "$action" in
+      +)
+        [[ $is_installed -eq 1 ]] && continue
+        echo ""
+        read -rp "Install '$pname' at user level? [y/N] " answer
+        if [[ "$answer" =~ ^[Yy]$ ]]; then
+          claude plugin install "${pname}@nexaedge-marketplace" --scope user
+        fi
+        ;;
+      -)
+        [[ $is_installed -eq 0 ]] && continue
+        echo ""
+        echo "→ Uninstalling '$pname' (removed from marketplace)..."
+        claude plugin uninstall "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+        ;;
+    esac
   done
 }
