@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: marketingskills v2] - 2026-03-19
+
+### Changed
+- feat: add from coreyhaines31/marketingskills
+
+## [Marketplace v30] - 2026-03-19
+
+### Changed
+- feat: add from coreyhaines31/marketingskills
+
 ## [Marketplace v29] - 2026-03-19
 
 ### Changed
