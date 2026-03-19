@@ -252,7 +252,7 @@ print_plugin_skills() {
     if [[ -f "$skill_md" ]]; then
       desc=$(grep -m1 '^description:' "$skill_md" | sed 's/^description: *//; s/^"//; s/"$//' || true)
       # Truncate to first sentence or 80 chars
-      desc=$(echo "$desc" | sed 's/\. .*/\./' | cut -c1-80)
+      desc=$(echo "$desc" | sed 's/\..*/\./')
     fi
 
     if [[ -n "$desc" ]]; then
