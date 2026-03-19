@@ -66,10 +66,6 @@
         "source": "url",
         "url": "https://github.com/ChromeDevTools/chrome-devtools-mcp.git"
       }
-    },
-    {
-      "name": "seo",
-      "source": "./plugins/seo"
     }
   ]
 }
