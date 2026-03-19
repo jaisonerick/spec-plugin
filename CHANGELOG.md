@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: seo-audit v2] - 2026-03-19
+
+### Changed
+- feat: add plugin(s) from coreyhaines31/marketingskills
+
+## [Marketplace v6] - 2026-03-19
+
+### Changed
+- feat: add plugin(s) from coreyhaines31/marketingskills
+
 ## [Marketplace v5] - 2026-03-18
 
 ### Changed
