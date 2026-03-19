@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v39] - 2026-03-19
+
+### Changed
+- feat: remove chrome-devtools-mcp
+
 ## [Plugin: cloudflare-dns v2] - 2026-03-19
 
 ### Changed
