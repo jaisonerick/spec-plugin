@@ -185,4 +185,31 @@ deploy() {
   version_after=$(get_marketplace_version)
 
   print_summary "$version_before" "$version_after" "${changed_plugins[@]+"${changed_plugins[@]}"}"
+
+  # Offer to install newly added plugins
+  local -a seen_plugins=()
+  for entry in "${changed_plugins[@]+"${changed_plugins[@]}"}"; do
+    [[ "${entry:0:1}" != "+" ]] && continue
+    local target="${entry:1}"
+    local pname="${target%%/*}"
+
+    # Skip if already prompted for this plugin
+    local already=0
+    for s in "${seen_plugins[@]+"${seen_plugins[@]}"}"; do
+      [[ "$s" == "$pname" ]] && already=1 && break
+    done
+    [[ $already -eq 1 ]] && continue
+    seen_plugins+=("$pname")
+
+    # Check if already installed
+    if claude plugin list 2>/dev/null | grep -q "${pname}@nexaedge-marketplace"; then
+      continue
+    fi
+
+    echo ""
+    read -rp "Install '$pname' at user level? [y/N] " answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+      claude plugin install "${pname}@nexaedge-marketplace" --scope user
+    fi
+  done
 }
