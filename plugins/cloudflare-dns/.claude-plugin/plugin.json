@@ -1,0 +1,9 @@
+{
+  "name": "cloudflare-dns",
+  "version": "v1",
+  "description": "Manage Cloudflare DNS zones and records through Terraform in the nexaedge/infrastructure repository. Automates the full workflow: edit Terraform files, open PR, review plan, merge, watch apply, and verify.",
+  "author": {
+    "name": "Jaison Erick",
+    "url": "https://github.com/jaisonerick"
+  }
+}
