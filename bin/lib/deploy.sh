@@ -218,6 +218,7 @@ deploy() {
         read -rp "Install '$pname' at user level? [y/N] " answer
         if [[ "$answer" =~ ^[Yy]$ ]]; then
           claude plugin install "${pname}@nexaedge-marketplace" --scope user
+          print_plugin_skills "$pname"
         fi
         ;;
       -)
@@ -228,4 +229,39 @@ deploy() {
         ;;
     esac
   done
+}
+
+# Print available skills for a plugin after install.
+print_plugin_skills() {
+  local pname="$1"
+  local plugin_dir="$MARKETPLACE_ROOT/plugins/$pname"
+
+  [[ -d "$plugin_dir/skills" ]] || return 0
+
+  echo ""
+  echo "  Skills now available in Claude Code:"
+  echo ""
+
+  for skill_dir in "$plugin_dir"/skills/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    local sname
+    sname=$(basename "$skill_dir")
+    local skill_md="$skill_dir/SKILL.md"
+
+    local desc=""
+    if [[ -f "$skill_md" ]]; then
+      desc=$(grep -m1 '^description:' "$skill_md" | sed 's/^description: *//; s/^"//; s/"$//' || true)
+      # Truncate to first sentence or 80 chars
+      desc=$(echo "$desc" | sed 's/\. .*/\./' | cut -c1-80)
+    fi
+
+    if [[ -n "$desc" ]]; then
+      printf "    /%s:%s — %s\n" "$pname" "$sname" "$desc"
+    else
+      printf "    /%s:%s\n" "$pname" "$sname"
+    fi
+  done
+
+  echo ""
+  echo "  Restart Claude Code to load the new skills."
 }
