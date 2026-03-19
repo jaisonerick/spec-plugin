@@ -19,6 +19,8 @@ Usage: mkt <command> [options]
 Commands:
   add          Add a plugin or skill from a GitHub URL
   list         List installed plugins and skills
+  enable       Enable plugins (interactive picker)
+  disable      Disable plugins (interactive picker)
   remove       Remove plugins or skills (interactive picker)
   update       Check vendored skills for upstream updates
   completions  Output shell completion setup instructions
@@ -685,6 +687,121 @@ EOF
   echo ""
 }
 
+# ── Command: enable ────────────────────────────────────────────────────────────
+
+cmd_enable() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: mkt enable [plugin]"
+    echo ""
+    echo "Enable a plugin. Shows an interactive picker if no argument given."
+    exit 0
+  fi
+
+  # Get all marketplace plugins and their install/enabled status
+  local installed_json
+  installed_json=$(claude plugin list --json 2>/dev/null | sed 's/\[>4[;0-9]*m//g' || echo "[]")
+
+  local -a all_plugins=()
+  while IFS= read -r pname; do
+    [[ -z "$pname" ]] && continue
+    all_plugins+=("$pname")
+  done <<< "$(jq -r '.plugins[].name' "$MARKETPLACE_JSON")"
+
+  # Build display items — show disabled plugins (not installed or installed but disabled)
+  local -a items=()
+  for pname in "${all_plugins[@]}"; do
+    local is_enabled
+    is_enabled=$(echo "$installed_json" | jq -r --arg id "${pname}@nexaedge-marketplace" \
+      '.[] | select(.id == $id) | .enabled // false' 2>/dev/null || echo "false")
+
+    if [[ "$is_enabled" == "true" ]]; then
+      items+=("✔ $pname")
+    else
+      items+=("  $pname")
+    fi
+  done
+
+  local -a targets=()
+
+  if [[ $# -ge 1 ]]; then
+    targets+=("$1")
+  else
+    while IFS= read -r line; do
+      line=$(echo "$line" | sed 's/^[✔ ]*//')
+      [[ -n "$line" ]] && targets+=("$line")
+    done < <(fzf_multi_pick "Select plugins to enable (TAB to toggle, ENTER to confirm)" "${items[@]}" || true)
+
+    [[ ${#targets[@]} -eq 0 ]] && exit 0
+  fi
+
+  for pname in "${targets[@]}"; do
+    local is_installed=0
+    echo "$installed_json" | jq -e --arg id "${pname}@nexaedge-marketplace" '.[] | select(.id == $id)' &>/dev/null && is_installed=1
+
+    if [[ $is_installed -eq 0 ]]; then
+      echo "→ Installing and enabling '$pname'..."
+      claude plugin install "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+    else
+      echo "→ Enabling '$pname'..."
+      claude plugin enable "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+    fi
+  done
+
+  echo ""
+  echo "  Restart Claude Code to apply changes."
+}
+
+# ── Command: disable ──────────────────────────────────────────────────────────
+
+cmd_disable() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: mkt disable [plugin]"
+    echo ""
+    echo "Disable an enabled plugin. Shows an interactive picker if no argument given."
+    exit 0
+  fi
+
+  local installed_json
+  installed_json=$(claude plugin list --json 2>/dev/null | sed 's/\[>4[;0-9]*m//g' || echo "[]")
+
+  # Only show enabled plugins
+  local -a enabled_plugins=()
+  while IFS= read -r pname; do
+    [[ -z "$pname" ]] && continue
+    enabled_plugins+=("$pname")
+  done <<< "$(echo "$installed_json" | jq -r '.[] | select(.enabled == true) | .id' | sed 's/@nexaedge-marketplace//')"
+
+  if [[ ${#enabled_plugins[@]} -eq 0 ]]; then
+    echo "→ No enabled plugins."
+    exit 0
+  fi
+
+  local -a targets=()
+
+  if [[ $# -ge 1 ]]; then
+    targets+=("$1")
+  else
+    local -a items=()
+    for pname in "${enabled_plugins[@]}"; do
+      items+=("$pname")
+    done
+
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && targets+=("$line")
+    done < <(fzf_multi_pick "Select plugins to disable (TAB to toggle, ENTER to confirm)" "${items[@]}" || true)
+
+    [[ ${#targets[@]} -eq 0 ]] && exit 0
+  fi
+
+  for pname in "${targets[@]}"; do
+    echo "→ Disabling '$pname'..."
+    claude plugin disable "${pname}@nexaedge-marketplace" --scope user 2>/dev/null || true
+  done
+
+  echo ""
+  echo "  Restart Claude Code to apply changes."
+}
+
 # ── Command: remove ────────────────────────────────────────────────────────────
 
 cmd_remove() {
@@ -827,6 +944,8 @@ shift
 case "$command" in
   add)         cmd_add "$@" ;;
   list|ls)     cmd_list "$@" ;;
+  enable)      cmd_enable "$@" ;;
+  disable)     cmd_disable "$@" ;;
   remove|rm)   cmd_remove "$@" ;;
   update)      cmd_update "$@" ;;
   completions) cmd_completions "$@" ;;
