@@ -239,20 +239,27 @@ ask_reference_or_vendor() {
   esac
 }
 
+# Build the right source JSON for a plugin path. Repo root → url, subdir → git-subdir.
+build_plugin_source() {
+  local owner="$1" repo="$2" path="$3" ref="${4:-}"
+
+  if [[ -z "$path" || "$path" == "." ]]; then
+    jq -n --arg url "https://github.com/$owner/$repo.git" '{source: "url", url: $url}'
+  else
+    build_gitsubdir_source "$owner" "$repo" "$path" "$ref"
+  fi
+}
+
 # Reference a single plugin. For repo root: url source. For subdir: git-subdir.
 add_as_reference() {
   local plugin_path="$1"  # remote path (empty for repo root)
 
-  local plugin_name=""
-  local source_json=""
+  local pjson_path="${plugin_path:+$plugin_path/}.claude-plugin/plugin.json"
+  local plugin_name
+  plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$pjson_path" "$GH_REF" | jq -r '.name')
 
-  if [[ -z "$plugin_path" ]]; then
-    plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" ".claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
-    source_json=$(jq -n --arg url "https://github.com/$GH_OWNER/$GH_REPO.git" '{source: "url", url: $url}')
-  else
-    plugin_name=$(gh_file_content "$GH_OWNER" "$GH_REPO" "$plugin_path/.claude-plugin/plugin.json" "$GH_REF" | jq -r '.name')
-    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$plugin_path" "$GH_REF")
-  fi
+  local source_json
+  source_json=$(build_plugin_source "$GH_OWNER" "$GH_REPO" "$plugin_path" "$GH_REF")
 
   echo "→ Adding plugin '$plugin_name' as reference..."
   add_plugin_entry "$plugin_name" "$source_json"
@@ -296,7 +303,7 @@ add_marketplace_plugins_as_reference() {
     local ppath="${plugin_paths[0]}"
     echo "→ Found plugin '$pname'"
     local source_json
-    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
+    source_json=$(build_plugin_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
     add_plugin_entry "$pname" "$source_json"
     ADDED_PLUGIN="$pname"
     return
@@ -333,7 +340,7 @@ add_marketplace_plugins_as_reference() {
     done
 
     local source_json
-    source_json=$(build_gitsubdir_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
+    source_json=$(build_plugin_source "$GH_OWNER" "$GH_REPO" "$ppath" "$GH_REF")
     add_plugin_entry "$pname" "$source_json"
   done
 

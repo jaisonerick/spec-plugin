@@ -70,9 +70,8 @@
     {
       "name": "marketing-skills",
       "source": {
-        "source": "git-subdir",
-        "url": "coreyhaines31/marketingskills",
-        "path": ""
+        "source": "url",
+        "url": "https://github.com/coreyhaines31/marketingskills.git"
       }
     }
   ]
