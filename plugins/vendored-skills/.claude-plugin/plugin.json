@@ -1,6 +1,6 @@
 {
   "name": "vendored-skills",
-  "version": "v2",
+  "version": "v3",
   "description": "Vendored skills from external repositories",
   "author": {
     "name": "Anthropic",

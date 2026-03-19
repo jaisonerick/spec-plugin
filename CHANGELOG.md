@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: vendored-skills v3] - 2026-03-19
+
+### Changed
+- feat: single vendored-skills plugin for all vendored skills, remove --plugin flag
+
+## [Marketplace v33] - 2026-03-19
+
+### Changed
+- feat: single vendored-skills plugin for all vendored skills, remove --plugin flag
+
 ## [Plugin: skills v2] - 2026-03-19
 
 ### Changed
