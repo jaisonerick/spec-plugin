@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: spec-plugin v6] - 2026-03-24
+
+### Changed
+- feat: base branch support, code-first mode, clean commits, strict agent reuse
+
 ## [Plugin: spec-plugin v5] - 2026-03-23
 
 ### Changed

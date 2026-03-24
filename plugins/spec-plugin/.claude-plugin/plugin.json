@@ -1,6 +1,6 @@
 {
   "name": "spec-plugin",
-  "version": "v5",
+  "version": "v6",
   "description": "Spec-driven project execution pipeline — from ideation to verified deliverables, orchestrated by AI agents. Works with any project type.",
   "author": {
     "name": "Jaison Erick",
