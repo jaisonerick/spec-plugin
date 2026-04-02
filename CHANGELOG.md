@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: vendored-skills v4] - 2026-04-02
+
+### Changed
+- feat: add from vercel-labs/agent-skills
+
 ## [Plugin: spec-plugin v6] - 2026-03-24
 
 ### Changed
