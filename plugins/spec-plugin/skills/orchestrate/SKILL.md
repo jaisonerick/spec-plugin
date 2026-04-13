@@ -99,6 +99,8 @@ On completion: merge worktree → **shut down the architect agent immediately** 
 
 **Skip if done and user confirms to resume.**
 
+**CRITICAL: Version architecture is a hard prerequisite.** Before spawning the PO, verify `<specs_prefix>/<version>/architecture.md` exists on the base branch HEAD. If it doesn't exist, STOP and investigate — the architect phase may not have merged correctly. PO agents that work without the version architecture produce stories that diverge from architectural decisions.
+
 Spawn product-owner:
 ```
 Agent({ subagent_type: "product-owner", team_name: "<version>",
@@ -107,10 +109,18 @@ Agent({ subagent_type: "product-owner", team_name: "<version>",
                  Specs location: <specs path>.
                  Enter worktree 'stories-<version>'.
                  Run /build-stories <version>.
+
+                 REQUIRED FIRST STEP: Read the VERSION-SPECIFIC architecture before doing anything else:
+                   <specs_prefix>/<version>/architecture.md
+                 This file is your PRIMARY source for story breakdown. It contains the file manifest,
+                 component breakdown, code sketches, test strategy, and dependency graph.
+                 Do NOT proceed with story writing until you have read this file.
+                 If the file doesn't exist or is empty, STOP and report back immediately.
+
                  Architecture: <specs_prefix>/<version>/architecture.md.
                  Key decisions: <summarize 2-3 that affect decomposition>" })
 ```
-On completion: merge worktree → **shut down the product-owner agent immediately** → present story list to user → ask to confirm execution order.
+On completion: merge worktree → **shut down the product-owner agent immediately** → present story list to user → **review stories against the version architecture** for divergences → ask to confirm execution order.
 
 ## Phase 3 — Execute & Validate Cycle
 
@@ -257,6 +267,8 @@ All agents work relative to the `base_branch` recorded in Phase 0. **Every agent
 
 ### Before spawning any agent:
 - **Commit all pending changes on the base branch** in ALL repositories agents will work on. Run `git status` (and `git -C <code_repo> status` if applicable) and commit if needed before every `Agent()` call. Worktrees are created from HEAD — uncommitted files won't be visible.
+- **Verify HEAD includes all prior phase commits.** Run `git log --oneline -1` on each repo's base branch and confirm the most recent merge from the previous phase is present. Agents in specs-first multi-repo mode create worktrees via `git worktree add` from HEAD — if a prior phase's merge hasn't landed yet, the new agent won't see those files.
+- **For specs-first multi-repo manual worktrees:** After `git worktree add`, check if `scripts/setup-worktree.sh` exists in the code repo and instruct the agent to run it. This script copies `.env` and other gitignored files that worktrees don't inherit. If the script doesn't exist, instruct the agent to copy `.env` files manually: `cp <code_repo>/.env* <worktree_path>/`.
 
 ### Single-repo mode (specs and code in the same repo):
 Agent lifecycle: `EnterWorktree({ name })` → work → clean up commit history → `git checkout <base_branch> && git merge --ff-only worktree-<name>` → `ExitWorktree({ action: "remove" })` → `SendMessage` to team lead.
