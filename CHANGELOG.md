@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: artifact-publish v2] - 2026-07-27
+
+### Changed
+- feat: add artifact-publish plugin
+
+## [Marketplace v42] - 2026-07-27
+
+### Changed
+- feat: add artifact-publish plugin
+
 ## [Plugin: spec-plugin v14] - 2026-06-19
 
 ### Changed
