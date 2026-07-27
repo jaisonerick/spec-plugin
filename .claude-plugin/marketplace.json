@@ -65,6 +65,10 @@
       }
     },
     {
+      "name": "artifact-publish",
+      "source": "./plugins/artifact-publish"
+    },
+    {
       "name": "vendored-skills",
       "source": "./plugins/vendored-skills"
     },
