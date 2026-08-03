@@ -69,6 +69,10 @@
       "source": "./plugins/artifact-publish"
     },
     {
+      "name": "html-report",
+      "source": "./plugins/html-report"
+    },
+    {
       "name": "vendored-skills",
       "source": "./plugins/vendored-skills"
     },

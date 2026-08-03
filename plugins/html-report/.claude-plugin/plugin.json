@@ -1,0 +1,9 @@
+{
+  "name": "html-report",
+  "version": "v1",
+  "description": "Turn finished analysis results into a self-contained interactive HTML report: charts, cohort heatmaps, sortable tables and stat tiles, all inline in one file that opens by double-click with no network. Carries no brand of its own — it derives a theme from a brand color, or lifts one verbatim out of a report it built earlier.",
+  "author": {
+    "name": "Jaison Erick",
+    "url": "https://github.com/jaisonerick"
+  }
+}

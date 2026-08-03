@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The title is the artifact's NAME: in the tab, in the share listing, in how people
+     refer to the link. Write what the report answers, with its scope
+     ("Retenção por safra · out/2023 a jul/2026"), never the file name. -->
+<title>TÍTULO · RECORTE</title>
+
+<style>
+/* The markers below are a CONTRACT, not decoration: `theme.mjs extract` reads the
+   block back out of any report built with this skill. Keep them bare — no text on
+   the marker lines — and swap only what is between them. Everything outside is
+   written against the roles, never against a raw hex. See references/themes.md. */
+/* THEME */
+:root{
+  color-scheme: light;
+  --ink:#1a1a19; --muted:#52514e; --faint:#6b6a66;
+  --bg:#ffffff; --panel:#f7f7f5; --line:#e5e4df;
+  --accent:#1f6ac2; --brand:#2a78d6;
+  --pos:#0ca30c; --neg:#d03b3b; --warn:#b26a00;
+  --c1:#2a78d6; --c2:#eb6834; --c3:#0e9c8f; --c4:#c97a00; --c5:#6b5bc4; --c6:#c44c86;
+  --h0:#e8eef4; --h1:#c8d8e6; --h2:#9db9d2; --h3:#6f95b8;
+  --h4:#456f99; --h5:#28496e; --h6:#12263c;
+  /* --on-flip = primeiro passo da rampa em que o texto branco vence. Medido por
+     rampa, nunca copiado de outro tema. */
+  --on-lo:#1a1a19; --on-hi:#ffffff; --on-flip:4;
+}
+/* /THEME */
+
+:root{ --radius:14px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);line-height:1.55;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:3rem 1.5rem 5rem}
+header{border-bottom:1px solid var(--line);padding-bottom:1.6rem;margin-bottom:2.4rem}
+.eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(1.7rem,3.6vw,2.5rem);line-height:1.1;margin:.5rem 0 .6rem;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.3rem;margin:0 0 .3rem;font-weight:800;letter-spacing:-.01em}
+.sub{color:var(--muted);max-width:70ch;margin:.2rem 0 0}
+.meta{color:var(--faint);font-size:.82rem;margin-top:.9rem}
+section.s{margin:2.8rem 0}
+section.s > h2 + .sub{margin-bottom:1.1rem}
+
+/* Headline numbers. One row, never more than four. */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;margin:1.2rem 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:1rem 1.1rem}
+.stat b{display:block;font-size:1.7rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.stat small{display:block;color:var(--faint);font-size:.8rem;font-weight:600;margin-top:.4rem}
+
+/* Caveat that must not be missed. `.warn` for the one that changes a decision. */
+.note{background:var(--panel);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:.8rem 1rem;margin:1.1rem 0;color:var(--muted);font-size:.94rem}
+.note.warn{border-left-color:var(--warn)}
+
+.tbl-tools{display:flex;gap:.6rem;align-items:center;margin:.8rem 0 .4rem}
+.tbl-tools input{flex:1;max-width:280px;padding:.4rem .7rem;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:.88rem}
+.tbl-tools span{color:var(--faint);font-size:.8rem}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{text-align:left;padding:.5rem .8rem;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--panel);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--faint);cursor:pointer;user-select:none;position:sticky;top:0}
+th:hover{color:var(--accent)}
+th.sorted::after{content:" ▾";color:var(--accent)}
+th.sorted.asc::after{content:" ▴"}
+tbody tr:last-child td{border-bottom:0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.null{color:var(--faint)}
+
+.chart{margin:1.2rem 0}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+/* This rule OUTRANKS an SVG fill attribute. A colored label needs style="fill:…". */
+.chart text{font-size:11px;fill:var(--muted)}
+.chart .val{fill:var(--ink);font-weight:600}
+.chart .grid-line{stroke:var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:1.1rem;margin:.3rem 0 .2rem;font-size:.84rem;color:var(--muted)}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:.4rem;vertical-align:-1px}
+
+.tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;z-index:50;
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.55rem .7rem;
+  font-size:.82rem;box-shadow:0 6px 24px rgba(0,0,0,.14);min-width:170px}
+.tip b{display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--faint);
+  letter-spacing:.04em;text-transform:uppercase}
+.tip .r{display:flex;justify-content:space-between;gap:1.2rem;line-height:1.5}
+.tip .r i{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:.35rem}
+.tip .r span:last-child{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+.tip .tot{border-top:1px solid var(--line);margin-top:.35rem;padding-top:.35rem}
+
+footer{margin-top:4rem;padding-top:1.2rem;border-top:1px solid var(--line);color:var(--faint);font-size:.8rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel);padding:.1rem .35rem;border-radius:5px}
+@media print{body{background:#fff} .tbl-tools{display:none}}
+</style>
+
+<script>
+/* Data goes here, already aggregated. NaN is NOT valid JSON — emit null.
+   Escape every "</" as "<\/" or a string closes this tag. */
+const DATA = {};
+
+/* Locale and currency of the report — change these two and the `lang` on <html>,
+   and every formatted number follows. Nothing else is language-dependent. */
+const LOCALE = 'pt-BR', MOEDA = 'BRL';
+
+const F = (() => {
+  const dinheiro = new Intl.NumberFormat(LOCALE, {style:'currency', currency:MOEDA, maximumFractionDigits:0});
+  const dec = new Intl.NumberFormat(LOCALE, {maximumFractionDigits:2});
+  const nil = (v) => v === null || v === undefined;
+  return {
+    money: (v) => nil(v) ? '—' : dinheiro.format(v),
+    num:   (v) => nil(v) ? '—' : dec.format(v),
+    // Intl has no "percent with fixed decimals" that keeps the locale separator,
+    // so format the number and append the sign.
+    pct:   (v, casas = 1) => nil(v) ? '—' :
+      new Intl.NumberFormat(LOCALE, {minimumFractionDigits:casas, maximumFractionDigits:casas}).format(v) + '%',
+  };
+})();
+
+/* SVG node builder + the shared hover layer. Every chart uses these two. */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function n(tag, attrs = {}, text) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+const TIP = (() => {
+  const el = document.createElement('div');
+  el.className = 'tip';
+  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(el));
+  return {
+    show(html, ev) {
+      el.innerHTML = html; el.style.opacity = 1;
+      const r = el.getBoundingClientRect();
+      let x = ev.clientX + 16, y = ev.clientY - r.height / 2;
+      if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - 16;
+      el.style.left = Math.max(8, x) + 'px';
+      el.style.top = Math.min(Math.max(8, y), innerHeight - r.height - 8) + 'px';
+    },
+    hide() { el.style.opacity = 0; },
+    row: (nome, valor, cor) =>
+      `<div class="r"><span>${cor ? `<i style="background:${cor}"></i>` : ''}${nome}</span><span>${valor}</span></div>`,
+  };
+})();
+/* Read a theme token from CSS. Charts must never hardcode a hex. */
+const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function legend(sel, itens) {
+  const m = document.querySelector(sel);
+  if (m) m.innerHTML = itens.map(i => `<span><i style="background:${i.cor}"></i>${i.nome}</span>`).join('');
+}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CLIENTE · ASSUNTO</div>
+    <h1>TÍTULO · RECORTE</h1>
+    <p class="sub">Uma ou duas frases: o que se mediu, sobre o quê, e a definição que o
+      leitor precisa para não errar a leitura.</p>
+    <div class="meta">Gerado em DD/MM/AAAA · fonte e data do dado</div>
+  </header>
+
+  <!-- Seções aqui. Ver references/writing.md para a ordem. -->
+
+  <footer>Uso interno. Contém dado de cliente.</footer>
+</div>
+</body>
+</html>
