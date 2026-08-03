@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: html-report v2] - 2026-08-03
+
+### Changed
+- feat: add html-report plugin (#4)
+
+## [Marketplace v43] - 2026-08-03
+
+### Changed
+- feat: add html-report plugin (#4)
+
 ## [Plugin: artifact-publish v2] - 2026-07-27
 
 ### Changed
