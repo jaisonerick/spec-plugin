@@ -1,0 +1,158 @@
+---
+name: plaud
+description: Work with Plaud.ai voice recordings — find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - AskUserQuestion
+---
+
+Plaud.ai records meetings and calls; this skill is how that audio becomes text inside a repository.
+
+It stops at the transcript. Turning it into a note, filing it, naming the file, choosing the language: that is the repository's business, and this skill reads it from the repository rather than assuming it. Do not invent a destination.
+
+**Requires the local `plaud` CLI, authenticated, and Python 3.** Neither exists in a cloud sandbox, so this does not run there.
+
+```bash
+HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
+```
+
+## Start by reading the repository's configuration
+
+```bash
+python3 "$HUB" config
+```
+
+It prints the resolved setup and which of the two modes applies:
+
+- **ad-hoc** — no catalog. Recordings are fetched one at a time, on demand, and nothing about them is stored. This is the right mode for a repository that only wants the occasional transcript.
+- **catalog** — the repository keeps an index of every recording it knows about: what it is, whether it has been transcribed, where it was filed. Worth it when the set of recordings is itself something to keep track of.
+
+`filing` in the output is the document that says where a transcript belongs in this repository. **Read it before writing anything.** If it is absent, the repository has not declared a convention: look at its `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
+
+## Finding the recording
+
+Recordings live in Plaud's cloud, named by date and topic. Narrow before listing everything:
+
+```bash
+plaud list --since 2026-08-01 --limit 20        # recent
+plaud list --search "orçamento" --json          # by name
+plaud search "texto dito na reunião"            # inside the transcripts already made
+plaud info <id>                                 # one recording: duration, what content exists
+```
+
+When several could be the one, show the candidates with date and duration and let the user pick, rather than guessing from the title.
+
+## Bringing one transcript in
+
+```bash
+python3 "$HUB" fetch <id> --to comms/2026-08-06-reuniao-x/transcript.md
+python3 "$HUB" fetch <id>                       # into the configured directory, slug-named
+python3 "$HUB" fetch <id> --generate            # transcribe first if there is no transcript yet
+```
+
+`--to` ending in `.md` is the transcript's file; anything else is a directory, and the summary lands beside it (`--summary-to` puts it somewhere specific).
+
+**Transcription is not automatic and it consumes the account's quota.** A recording with no transcript makes `fetch` stop and say so; `--generate` transcribes and waits, and only pass it when the user asked for that recording specifically. Language auto-detects, speakers are separated by default, and a summary is always produced along with the transcript because Plaud's remote trigger has no transcript-only mode.
+
+Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
+
+## Handing off
+
+Follow the `filing` document. If the repository has its own skill for meeting notes or for filing documents, use it — that skill owns the destination, the naming and the structure, and this one has already done its part by putting readable text on disk.
+
+Say where the transcript landed and where the note went, so the next reader can follow the thread back to the source.
+
+## Catalog mode
+
+Only when `config` reports a hub. The catalog is `catalog.jsonl` (source of truth, git-tracked, one JSON object per recording), a git-ignored sqlite index rebuilt from it, and the raw transcripts pulled so far.
+
+```bash
+python3 "$HUB" refresh     # merge `plaud list` + tags into the catalog; curation is preserved
+python3 "$HUB" build       # recompile the sqlite index from the catalog
+python3 "$HUB" status      # counts by status
+python3 "$HUB" pull <id>   # fetch into the raw store and record the paths
+python3 "$HUB" set <id> project=<label> path=<repo-relative> status=filed
+python3 "$HUB" gen-links   # regenerate the page listing what still needs transcription
+```
+
+`status` is the manifest, so check it before processing a recording twice: `pending` (no transcript yet), `transcribed` (has one, not filed), `filed` (mapped to a destination through `path` and/or `repo`), `excluded` (out of scope for this repository). The first two are recomputed on every refresh; the last two are sticky, and a refresh never touches them or any other curation field.
+
+Ad-hoc queries go straight to the index, which has a `pending_transcription` and an `unfiled` view:
+
+```bash
+sqlite3 <hub>/recordings.db "SELECT id, recorded_at, duration_min, filename FROM unfiled;"
+```
+
+Activating transcription in bulk is the one place worth being careful, because every recording costs quota. Filter to what is worth transcribing, and confirm the batch with the user first:
+
+```bash
+plaud generate $(sqlite3 <hub>/recordings.db "SELECT id FROM pending_transcription WHERE duration_min >= 5")
+```
+
+After activating, `refresh && build` flips those recordings from `pending` to `transcribed`.
+
+Commit `catalog.jsonl` and whatever was pulled; the sqlite index is rebuildable and stays out of git.
+
+## `.plaud.json`
+
+At the repository root. Every key is optional; the file itself is optional, and without it the skill runs ad-hoc and has nothing to tell you about filing.
+
+```json
+{
+  "filing": "docs/meeting-notes.md",
+  "scratch": "workspace/plaud",
+  "hub": "studio/plaud",
+  "exclude_tags": ["Client A"],
+  "exclude_reason": "handled-in-the-client-repo",
+  "utc_offset": -3
+}
+```
+
+| Key | Effect |
+| :-- | :-- |
+| `filing` | Path to the document that says where a transcript belongs here. The one key worth setting even in the simplest repository. |
+| `scratch` | Default directory for `fetch` when `--to` is omitted. Point it at a git-ignored directory when transcripts should not be committed as they are. |
+| `hub` | Turns on catalog mode and names the directory holding it. Absent means ad-hoc. |
+| `exclude_tags` | Plaud tags whose recordings are out of scope: they stay indexed but are marked `excluded` on refresh. Catalog mode only. |
+| `exclude_reason` | What to record as the reason for those. |
+| `utc_offset` | Timezone for recording timestamps, in hours from UTC. Defaults to the machine's timezone. |
+
+## Setup
+
+Install the CLI if `plaud` is not on PATH: `bash <(curl -sSfL https://github.com/jaisonerick/plaud-cli/raw/main/install.sh)`. Update with `plaud update`. Source: `jaisonerick/plaud-cli`.
+
+Authenticate if `plaud me` returns 401: `plaud login` (interactive, one-time code by email) or `plaud login --token TOKEN`. The token is stored at `~/.config/plaud/token.json`. `plaud summarize` and `plaud ask` additionally need `ANTHROPIC_API_KEY` in the environment.
+
+## CLI reference
+
+```bash
+plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transcript]
+           [--has-summary] [--search STR] [--limit N] [--json]
+plaud info <id> [--json]
+
+plaud generate <id>... [--lang auto|pt|en] [--speaker=false] [--summary-template ID]
+                       [--reload] [--wait] [--timeout D] [--poll-interval D]
+plaud download <id> [--audio] [--transcript] [--summary] [--all]
+                    [--format json|txt|srt|md] [--output-dir DIR]
+
+plaud search "text" [--limit N] [--no-cache]     # over transcripts, cached locally
+plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
+plaud ask <id> "question"                        # streams the answer
+
+plaud tag list | tag create "Name" | tag delete "Name"
+plaud me
+```
+
+`--debug`, `--json` and `--help` work on every command. `plaud sync` bulk-downloads everything to a local folder; prefer `fetch` or `pull`, which put the file where the repository wants it.
+
+## Rules
+
+- **Never delete a recording from Plaud.** This skill reads, transcribes and organizes, and nothing here removes anything from the account.
+- **Transcription costs quota**, so activating it is a decision, not a step. One recording on request, a batch only after the user confirms the batch.
+- **Keep the transcript in the language it was spoken.** Translating a meeting loses what made it worth keeping; a summary follows the destination's language if that differs.
+- **The transcript is the source, the note is what people read.** Keep the transcript reachable from the note rather than replacing it.

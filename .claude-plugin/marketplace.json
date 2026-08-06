@@ -83,6 +83,10 @@
     {
       "name": "work-modes",
       "source": "./plugins/work-modes"
+    },
+    {
+      "name": "plaud",
+      "source": "./plugins/plaud"
     }
   ]
 }
