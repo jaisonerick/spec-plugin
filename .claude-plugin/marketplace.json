@@ -1,7 +1,7 @@
 {
   "name": "nexaedge-marketplace",
   "metadata": {
-    "description": "Jaison Erick's Claude Code plugin marketplace.",
+    "description": "Plugins and skills for coding agents, on Claude Code, Codex and Antigravity.",
     "version": "v43"
   },
   "owner": {
@@ -9,6 +9,30 @@
     "email": "jaison@jaisonerick.com"
   },
   "plugins": [
+    {
+      "name": "marketplace",
+      "source": "./plugins/marketplace"
+    },
+    {
+      "name": "artifact-publish",
+      "source": "./plugins/artifact-publish"
+    },
+    {
+      "name": "html-report",
+      "source": "./plugins/html-report"
+    },
+    {
+      "name": "cloudflare-dns",
+      "source": "./plugins/cloudflare-dns"
+    },
+    {
+      "name": "plaud",
+      "source": "./plugins/plaud"
+    },
+    {
+      "name": "vendored-skills",
+      "source": "./plugins/vendored-skills"
+    },
     {
       "name": "spec-plugin",
       "source": "./plugins/spec-plugin"
@@ -22,6 +46,22 @@
       "source": {
         "source": "url",
         "url": "https://github.com/Dammyjay93/interface-design.git"
+      }
+    },
+    {
+      "name": "frontend-design",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/frontend-design"
+      }
+    },
+    {
+      "name": "commit-commands",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/anthropics/claude-plugins-official.git",
+        "path": "plugins/commit-commands"
       }
     },
     {
@@ -47,46 +87,6 @@
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/rust-analyzer-lsp"
       }
-    },
-    {
-      "name": "frontend-design",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/claude-plugins-official.git",
-        "path": "plugins/frontend-design"
-      }
-    },
-    {
-      "name": "commit-commands",
-      "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/anthropics/claude-plugins-official.git",
-        "path": "plugins/commit-commands"
-      }
-    },
-    {
-      "name": "artifact-publish",
-      "source": "./plugins/artifact-publish"
-    },
-    {
-      "name": "html-report",
-      "source": "./plugins/html-report"
-    },
-    {
-      "name": "vendored-skills",
-      "source": "./plugins/vendored-skills"
-    },
-    {
-      "name": "cloudflare-dns",
-      "source": "./plugins/cloudflare-dns"
-    },
-    {
-      "name": "work-modes",
-      "source": "./plugins/work-modes"
-    },
-    {
-      "name": "plaud",
-      "source": "./plugins/plaud"
     }
   ]
 }

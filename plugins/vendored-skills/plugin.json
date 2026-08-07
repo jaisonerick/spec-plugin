@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "vendored-skills",
+  "version": "v4",
+  "description": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
+  "author": {
+    "name": "Anthropic",
+    "url": "https://github.com/anthropics"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "skills",
+    "vendored",
+    "mcp",
+    "markdown",
+    "design"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "Vendored Skills",
+      "tagline": "Third-party skills vendored here and pinned to a commit",
+      "category": "Developer Tools",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "prompts": [
+        "Convert this PDF to markdown",
+        "Review my UI against the guidelines"
+      ]
+    }
+  }
+}

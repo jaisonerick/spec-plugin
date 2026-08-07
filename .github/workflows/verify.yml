@@ -1,0 +1,51 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  generated-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The generator refuses to run on an inconsistent marketplace, so this
+      # doubles as the catalog check.
+      - name: Manifests match their source
+        run: |
+          python3 bin/lib/generate.py
+          if ! git diff --quiet; then
+            echo "::error::Generated manifests are out of date. Run 'bin/mkt generate' and commit the result."
+            git diff --stat
+            exit 1
+          fi
+
+      # Claude tolerates an unquoted description containing ': '; Codex rejects
+      # it. Without this the break only shows up at install time, on one agent.
+      - name: SKILL.md frontmatter is valid YAML
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'PY'
+          import pathlib, sys, yaml
+
+          problems = []
+          for path in sorted(pathlib.Path("plugins").glob("*/skills/*/SKILL.md")):
+              text = path.read_text()
+              if not text.startswith("---"):
+                  problems.append(f"{path}: no frontmatter")
+                  continue
+              try:
+                  front = yaml.safe_load(text.split("---", 2)[1])
+              except Exception as error:
+                  problems.append(f"{path}: {str(error).splitlines()[0]}")
+                  continue
+              for field in ("name", "description"):
+                  if not front.get(field):
+                      problems.append(f"{path}: missing required '{field}'")
+
+          for problem in problems:
+              print(f"::error::{problem}")
+          sys.exit(1 if problems else 0)
+          PY

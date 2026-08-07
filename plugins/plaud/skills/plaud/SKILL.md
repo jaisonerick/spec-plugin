@@ -1,6 +1,7 @@
 ---
 name: plaud
-description: Work with Plaud.ai voice recordings: find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
+description: >-
+  Work with Plaud.ai voice recordings: find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
 allowed-tools:
   - Bash
   - Read

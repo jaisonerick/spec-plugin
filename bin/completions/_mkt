@@ -76,6 +76,7 @@ _mkt() {
     'add:Add a plugin or skill from a GitHub URL'
     'remove:Remove a plugin or skill'
     'update:Check vendored skills for upstream updates'
+    'generate:Regenerate the Codex and Antigravity manifests'
     'completions:Output shell completion setup'
   )
 

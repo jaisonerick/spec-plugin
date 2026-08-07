@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "linear-spec-plugin",
+  "version": "v1",
+  "description": "Spec-driven project execution pipeline backed by Linear. Same skills and agents as spec-plugin, but writes specs, stories and validation to Linear via GraphQL while keeping reasoning artifacts on disk.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "spec",
+    "linear",
+    "agents",
+    "orchestration"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "Linear Spec Plugin",
+      "tagline": "The spec pipeline, with Linear as the system of record",
+      "category": "Developer Tools",
+      "platforms": [
+        "claude"
+      ],
+      "requires": "plugin-provided subagents"
+    }
+  }
+}
