@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexaedge v3] - 2026-08-07
+
+### Changed
+- Merge pull request #6 from nexaedge/unambiguous-bootstrap
+
+## [Marketplace v45] - 2026-08-07
+
+### Changed
+- Merge pull request #6 from nexaedge/unambiguous-bootstrap
+
 ## [Plugin: artifact-publish v3] - 2026-08-07
 
 ### Changed
