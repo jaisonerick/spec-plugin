@@ -133,12 +133,14 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 **The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to have `generate`, the error says so rather than failing obscurely.
 
-**Authentication is the part a fresh environment still needs.** Two ways in:
+**Authentication is the part a fresh environment still needs**, and there are only two ways in:
 
-- `PLAUD_TOKEN` in the environment, which stands in for the config file entirely. Nothing is written to disk, so this is the one that works in a container, a CI job or on a machine that is not yours.
-- `plaud login`, an interactive one-time code by email, which writes `~/.config/plaud/token.json`. `plaud login --token TOKEN` skips the prompts.
+- `plaud login` sends a one-time code to the account's email and writes the token to `~/.config/plaud/token.json`. It needs a terminal and the mailbox, so it is how a person sets up their own machine, once.
+- `PLAUD_TOKEN` in the environment carries a token someone already obtained that way. Nothing is written to disk, which is what makes a container, a CI job or a borrowed machine work at all: no mailbox there means no login there.
 
-If a command comes back with an expired session, stop and get a valid token rather than working around it.
+The token is a JWT valid for months, and **nothing in this stack refreshes it**. When it expires the only cure is another login, so `doctor` prints the expiry date instead of letting a task discover it halfway through. If a command reports an expired session, stop and get a valid token rather than working around it.
+
+Accounts are per person and each one sees only its own recordings. A teammate's call is not missing, it is simply not in the account this environment is authenticated as.
 
 | Variable | Effect |
 | :-- | :-- |

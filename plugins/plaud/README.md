@@ -21,7 +21,7 @@ What a fresh environment still needs is an authenticated account:
 | `PLAUD_BIN` | Use this binary instead of resolving one. |
 | `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
 
-Without `PLAUD_TOKEN`, `plaud login` walks through a one-time code by email and writes the token to disk. `python3 <engine> doctor` reports which of these is missing.
+Without `PLAUD_TOKEN`, `plaud login` sends a one-time code to the account's email and writes the token to disk. That flow needs a terminal and the mailbox, so it is how a person sets up their own machine; a headless environment cannot log in and can only carry a token obtained that way. The token is a JWT valid for months and nothing refreshes it, so `doctor` reports the expiry date alongside everything else it checks.
 
 ## Configure the repository
 

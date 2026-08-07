@@ -35,6 +35,7 @@ Run `plaud_hub.py <command> --help` for the flags of each.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -230,6 +231,28 @@ def install_cli():
     return target
 
 
+def _token_expiry():
+    """When the current session dies, read from the token itself.
+
+    There is no refresh anywhere in this stack: an expired token can only be
+    replaced by a fresh login, which needs a one-time code by email. So the
+    expiry date is worth surfacing before it stops a task halfway.
+    """
+    token = os.environ.get("PLAUD_TOKEN")
+    if not token:
+        path = os.path.join(os.path.expanduser("~"), ".config", "plaud", "token.json")
+        try:
+            token = json.load(open(path)).get("access_token")
+        except (OSError, ValueError):
+            return None
+    try:
+        payload = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        return datetime.fromtimestamp(claims["exp"], tz=timezone.utc)
+    except Exception:
+        return None
+
+
 def _cli_version():
     out = subprocess.run([plaud_bin(), "--version"], capture_output=True, text=True)
     return out.stdout.strip().split()[-1] if out.returncode == 0 else "unknown"
@@ -350,11 +373,19 @@ def cmd_doctor(repo, _args):
     """Everything that has to be true for this skill to work, and whether it is."""
     binary = plaud_bin()
     auth = subprocess.run([binary, "me"], capture_output=True, text=True)
+    source = "PLAUD_TOKEN" if os.environ.get("PLAUD_TOKEN") else "~/.config/plaud/token.json"
     lines = [
         f"python        {platform.python_version()} ({sys.executable})",
         f"plaud CLI     {_cli_version()} at {binary}",
         f"  generate    {'yes' if _supports('generate') else 'NO, cannot activate transcription'}",
-        f"  auth        {'ok' if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
+        f"  auth        {'ok, from ' + source if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
+    ]
+    expiry = _token_expiry()
+    if expiry:
+        left = expiry - datetime.now(tz=timezone.utc)
+        warn = "  <-- renew it, there is no refresh" if left.days < 21 else ""
+        lines.append(f"  expires     {expiry.date()} ({left.days} days){warn}")
+    lines += [
         f"repository    {repo.root}",
         f"  config      {repo.config_path if os.path.exists(repo.config_path) else 'none (ad-hoc, no filing declared)'}",
         f"  mode        {'catalog' if repo.hub else 'ad-hoc'}",
