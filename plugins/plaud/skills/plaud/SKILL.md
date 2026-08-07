@@ -133,10 +133,11 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 **The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to have `generate`, the error says so rather than failing obscurely.
 
-**Authentication is the part a fresh environment still needs**, and there are only two ways in:
+**Authentication is the part a fresh environment still needs.** Three ways in:
 
-- `plaud login` sends a one-time code to the account's email and writes the token to `~/.config/plaud/token.json`. It needs a terminal and the mailbox, so it is how a person sets up their own machine, once.
-- `PLAUD_TOKEN` in the environment carries a token someone already obtained that way. Nothing is written to disk, which is what makes a container, a CI job or a borrowed machine work at all: no mailbox there means no login there.
+- `plaud login --password` takes the account's email and password and comes back authenticated, writing the token to `~/.config/plaud/token.json`. The password is prompted for without echo; `--password-stdin` and `PLAUD_PASSWORD` cover the case where there is no one at the keyboard. This is the one to reach for when setting up a machine, since it needs nothing else.
+- `plaud login` sends a one-time code to the account's email instead. It needs the mailbox, and it is the only option for an account created through Google, Apple or Microsoft, which has no password until one is set in the Plaud app.
+- `PLAUD_TOKEN` in the environment carries a token someone already obtained. Nothing is written to disk, which suits an ephemeral container or a machine that is not yours to leave credentials on.
 
 The token is a JWT valid for months, and **nothing in this stack refreshes it**. When it expires the only cure is another login, so `doctor` prints the expiry date instead of letting a task discover it halfway through. If a command reports an expired session, stop and get a valid token rather than working around it.
 
@@ -145,6 +146,7 @@ Accounts are per person and each one sees only its own recordings. A teammate's 
 | Variable | Effect |
 | :-- | :-- |
 | `PLAUD_TOKEN` | Access token, no config file needed |
+| `PLAUD_EMAIL`, `PLAUD_PASSWORD` | Credentials for `login --password` without a prompt |
 | `PLAUD_BIN` | Use this binary instead of resolving one |
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
 | `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |

@@ -17,11 +17,14 @@ What a fresh environment still needs is an authenticated account:
 
 | Variable | Effect |
 | :-- | :-- |
-| `PLAUD_TOKEN` | Access token, standing in for `~/.config/plaud/token.json` entirely. This is what makes the plugin work in a container, a CI job or on someone else's machine. |
+| `PLAUD_EMAIL`, `PLAUD_PASSWORD` | Credentials for `plaud login --password`, so a machine can be set up in one step with no prompt. |
+| `PLAUD_TOKEN` | Access token, standing in for `~/.config/plaud/token.json` entirely. Nothing is written to disk, which suits an ephemeral container. |
 | `PLAUD_BIN` | Use this binary instead of resolving one. |
 | `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
 
-Without `PLAUD_TOKEN`, `plaud login` sends a one-time code to the account's email and writes the token to disk. That flow needs a terminal and the mailbox, so it is how a person sets up their own machine; a headless environment cannot log in and can only carry a token obtained that way. The token is a JWT valid for months and nothing refreshes it, so `doctor` reports the expiry date alongside everything else it checks.
+Interactively, `plaud login --password` asks for the email and password and comes back authenticated. `plaud login` on its own uses a one-time code by email instead, which is the only option for an account created through Google, Apple or Microsoft, since those have no password until one is set in the Plaud app.
+
+The resulting token is a JWT valid for months and nothing renews it, so `doctor` reports the expiry date alongside everything else it checks.
 
 ## Configure the repository
 
