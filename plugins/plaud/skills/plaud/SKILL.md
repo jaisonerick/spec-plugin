@@ -1,6 +1,6 @@
 ---
 name: plaud
-description: Work with Plaud.ai voice recordings — find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
+description: Work with Plaud.ai voice recordings: find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
 allowed-tools:
   - Bash
   - Read
@@ -15,22 +15,28 @@ Plaud.ai records meetings and calls; this skill is how that audio becomes text i
 
 It stops at the transcript. Turning it into a note, filing it, naming the file, choosing the language: that is the repository's business, and this skill reads it from the repository rather than assuming it. Do not invent a destination.
 
-**Requires the local `plaud` CLI, authenticated, and Python 3.** Neither exists in a cloud sandbox, so this does not run there.
+**Python 3 is the only thing that has to be there.** The Plaud client is a single Go binary, and if one is not already on PATH the engine installs the pinned release into the user's data directory on first use: no sudo, no PATH changes, nothing written inside the plugin. That needs network on the first run, and an authenticated account (see *Setup*).
 
 ```bash
 HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
 ```
 
-## Start by reading the repository's configuration
+## Start by checking the ground
+
+```bash
+python3 "$HUB" doctor
+```
+
+One report covering the CLI, whether it can activate transcription, whether the account is authenticated, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem.
 
 ```bash
 python3 "$HUB" config
 ```
 
-It prints the resolved setup and which of the two modes applies:
+Prints the resolved configuration alone, and which of the two modes applies:
 
-- **ad-hoc** — no catalog. Recordings are fetched one at a time, on demand, and nothing about them is stored. This is the right mode for a repository that only wants the occasional transcript.
-- **catalog** — the repository keeps an index of every recording it knows about: what it is, whether it has been transcribed, where it was filed. Worth it when the set of recordings is itself something to keep track of.
+- **ad-hoc**: no catalog. Recordings are fetched one at a time, on demand, and nothing about them is stored. This is the right mode for a repository that only wants the occasional transcript.
+- **catalog**: the repository keeps an index of every recording it knows about: what it is, whether it has been transcribed, where it was filed. Worth it when the set of recordings is itself something to keep track of.
 
 `filing` in the output is the document that says where a transcript belongs in this repository. **Read it before writing anything.** If it is absent, the repository has not declared a convention: look at its `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
 
@@ -63,7 +69,7 @@ Then read the file. A long transcript is raw speech: expect false starts, crosst
 
 ## Handing off
 
-Follow the `filing` document. If the repository has its own skill for meeting notes or for filing documents, use it — that skill owns the destination, the naming and the structure, and this one has already done its part by putting readable text on disk.
+Follow the `filing` document. If the repository has its own skill for meeting notes or for filing documents, use it, since that skill owns the destination, the naming and the structure, and this one has already done its part by putting readable text on disk.
 
 Say where the transcript landed and where the note went, so the next reader can follow the thread back to the source.
 
@@ -82,16 +88,17 @@ python3 "$HUB" gen-links   # regenerate the page listing what still needs transc
 
 `status` is the manifest, so check it before processing a recording twice: `pending` (no transcript yet), `transcribed` (has one, not filed), `filed` (mapped to a destination through `path` and/or `repo`), `excluded` (out of scope for this repository). The first two are recomputed on every refresh; the last two are sticky, and a refresh never touches them or any other curation field.
 
-Ad-hoc queries go straight to the index, which has a `pending_transcription` and an `unfiled` view:
+Ad-hoc queries go through `query`, which is read-only and needs no `sqlite3` binary. The index has a `pending_transcription` and an `unfiled` view:
 
 ```bash
-sqlite3 <hub>/recordings.db "SELECT id, recorded_at, duration_min, filename FROM unfiled;"
+python3 "$HUB" query "SELECT id, recorded_at, duration_min, filename FROM unfiled"
+python3 "$HUB" query "SELECT * FROM recordings WHERE project = 'acme'" --json
 ```
 
 Activating transcription in bulk is the one place worth being careful, because every recording costs quota. Filter to what is worth transcribing, and confirm the batch with the user first:
 
 ```bash
-plaud generate $(sqlite3 <hub>/recordings.db "SELECT id FROM pending_transcription WHERE duration_min >= 5")
+plaud generate $(python3 "$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header)
 ```
 
 After activating, `refresh && build` flips those recordings from `pending` to `transcribed`.
@@ -124,9 +131,21 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 ## Setup
 
-Install the CLI if `plaud` is not on PATH: `bash <(curl -sSfL https://github.com/jaisonerick/plaud-cli/raw/main/install.sh)`. Update with `plaud update`. Source: `jaisonerick/plaud-cli`.
+**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to have `generate`, the error says so rather than failing obscurely.
 
-Authenticate if `plaud me` returns 401: `plaud login` (interactive, one-time code by email) or `plaud login --token TOKEN`. The token is stored at `~/.config/plaud/token.json`. `plaud summarize` and `plaud ask` additionally need `ANTHROPIC_API_KEY` in the environment.
+**Authentication is the part a fresh environment still needs.** Two ways in:
+
+- `PLAUD_TOKEN` in the environment, which stands in for the config file entirely. Nothing is written to disk, so this is the one that works in a container, a CI job or on a machine that is not yours.
+- `plaud login`, an interactive one-time code by email, which writes `~/.config/plaud/token.json`. `plaud login --token TOKEN` skips the prompts.
+
+If a command comes back with an expired session, stop and get a valid token rather than working around it.
+
+| Variable | Effect |
+| :-- | :-- |
+| `PLAUD_TOKEN` | Access token, no config file needed |
+| `PLAUD_BIN` | Use this binary instead of resolving one |
+| `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
+| `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
 
 ## CLI reference
 

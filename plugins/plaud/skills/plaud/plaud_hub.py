@@ -13,11 +13,18 @@ Two modes, decided by whether `.plaud.json` sets `hub`:
               git-tracked), a rebuildable sqlite index, and the raw transcripts
               and summaries pulled so far.
 
+The `plaud` CLI it drives is a single Go binary. If one is not already on PATH,
+this installs the pinned release into the user's data directory: no sudo, no
+PATH changes, and nothing written inside the plugin, which is wiped on update.
+
 Commands:
+  doctor             Check the CLI, the authentication and this repository's setup.
+  install            (Re)install the pinned CLI, without waiting to need it.
   config             Print the resolved configuration and mode.
   fetch ID           Download one transcript (and summary) to a path. Works in both modes.
   refresh            Merge `plaud list` + tags into catalog.jsonl, preserving curation.
   build              Recompile the sqlite index from catalog.jsonl.
+  query SQL          Read-only query against the index, no sqlite3 binary needed.
   pull ID            fetch into the hub's raw store and record the paths in the catalog.
   set ID k=v ...     Edit curation fields of one recording, then run `build`.
   status             Print counts by status.
@@ -28,20 +35,29 @@ Run `plaud_hub.py <command> --help` for the flags of each.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import sqlite3
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCHEMA = os.path.join(HERE, "schema.sql")
 LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
+
+# The CLI this skill is written against. Pinned rather than tracking the latest
+# release, so the commands and flags documented here are the ones that run.
+# Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
+CLI_REPO = "jaisonerick/plaud-cli"
+CLI_VERSION = "0.7.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -88,7 +104,7 @@ class Repo:
     def rel(self, path):
         return os.path.relpath(path, self.root) if path else None
 
-    # Hub layout — only meaningful when `hub` is configured.
+    # Hub layout, only meaningful when `hub` is configured.
     @property
     def catalog(self):
         return os.path.join(self.hub, "catalog.jsonl")
@@ -128,10 +144,107 @@ def _git_root():
     return out.stdout.strip() if out.returncode == 0 else None
 
 
+# --------------------------------------------------------------------------- the CLI itself
+
+_BIN = None
+
+
+def plaud_bin(install=True):
+    """Path to the plaud CLI, installing it into the user's data dir if needed.
+
+    Order: PLAUD_BIN, then whatever is on PATH, then the copy this skill manages.
+    Nothing here writes to the plugin's own directory, which is wiped on update.
+    """
+    global _BIN
+    if _BIN:
+        return _BIN
+    candidate = os.environ.get("PLAUD_BIN") or shutil.which("plaud")
+    if not candidate:
+        managed = os.path.join(_managed_dir(), _bin_name())
+        candidate = managed if os.path.exists(managed) else (install_cli() if install else None)
+    if not candidate:
+        sys.exit("the plaud CLI is not available. Run `plaud_hub.py install`")
+    _BIN = candidate
+    return _BIN
+
+
+def _managed_dir():
+    base = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(base, "plaud-cli", "bin")
+
+
+def _bin_name():
+    return "plaud.exe" if platform.system() == "Windows" else "plaud"
+
+
+def _asset_name():
+    systems = {"Darwin": "darwin", "Linux": "linux", "Windows": "windows"}
+    machines = {"x86_64": "amd64", "amd64": "amd64", "arm64": "arm64", "aarch64": "arm64"}
+    system = systems.get(platform.system())
+    machine = machines.get(platform.machine().lower())
+    if not system or not machine:
+        sys.exit(f"no plaud-cli build for {platform.system()}/{platform.machine()}. "
+                 f"Build it from source ({CLI_REPO}) and point PLAUD_BIN at it")
+    return f"plaud-cli_{system}_{machine}" + (".exe" if system == "windows" else "")
+
+
+def _resolve_version():
+    version = os.environ.get("PLAUD_CLI_VERSION", CLI_VERSION)
+    if version != "latest":
+        return version.lstrip("v")
+    url = f"https://api.github.com/repos/{CLI_REPO}/releases/latest"
+    with urllib.request.urlopen(url, timeout=30) as r:
+        return json.load(r)["tag_name"].lstrip("v")
+
+
+def install_cli():
+    """Download the pinned release into the user's data dir. No sudo, no PATH changes."""
+    version = _resolve_version()
+    asset = _asset_name()
+    base = f"https://github.com/{CLI_REPO}/releases/download/v{version}"
+    target = os.path.join(_managed_dir(), _bin_name())
+    print(f"installing plaud-cli v{version} ({asset}) -> {target}", file=sys.stderr)
+
+    try:
+        with urllib.request.urlopen(f"{base}/checksums.txt", timeout=60) as r:
+            checksums = r.read().decode()
+        with urllib.request.urlopen(f"{base}/{asset}", timeout=300) as r:
+            payload = r.read()
+    except Exception as e:
+        sys.exit(f"could not download plaud-cli v{version} from {base}: {e}")
+
+    expected = next((l.split()[0] for l in checksums.splitlines()
+                     if l.strip().endswith(asset)), None)
+    if not expected:
+        sys.exit(f"{asset} is not listed in the release checksums. Refusing to install")
+    actual = hashlib.sha256(payload).hexdigest()
+    if actual != expected:
+        sys.exit(f"checksum mismatch for {asset}: expected {expected}, got {actual}")
+
+    os.makedirs(_managed_dir(), exist_ok=True)
+    tmp = target + ".part"
+    with open(tmp, "wb") as f:
+        f.write(payload)
+    os.chmod(tmp, 0o755)
+    os.replace(tmp, target)
+    return target
+
+
+def _cli_version():
+    out = subprocess.run([plaud_bin(), "--version"], capture_output=True, text=True)
+    return out.stdout.strip().split()[-1] if out.returncode == 0 else "unknown"
+
+
+def _supports(command):
+    """Ask the CLI whether it has a command, instead of doing version arithmetic."""
+    out = subprocess.run([plaud_bin(), command, "--help"], capture_output=True, text=True)
+    return out.returncode == 0
+
+
 # --------------------------------------------------------------------------- plaud CLI
 
 def _plaud_json(args):
-    out = subprocess.run(["plaud", *args, "--json"], capture_output=True, text=True)
+    out = subprocess.run([plaud_bin(), *args, "--json"], capture_output=True, text=True)
     if out.returncode != 0:
         sys.exit(f"plaud {' '.join(args)} failed:\n{out.stderr.strip()}")
     return _first_json(out.stdout, f"plaud {' '.join(args)}")
@@ -166,7 +279,7 @@ def _download(rid, kind, target):
     """Download one content kind as markdown to `target`. Returns the path, or None."""
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run(["plaud", "download", rid, f"--{kind}", "--format", "md",
+        subprocess.run([plaud_bin(), "download", rid, f"--{kind}", "--format", "md",
                         "--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
@@ -179,7 +292,11 @@ def _download(rid, kind, target):
 
 
 def _generate(rid):
-    subprocess.run(["plaud", "generate", rid, "--wait"], check=True)
+    if not _supports("generate"):
+        sys.exit(f"this plaud CLI ({_cli_version()} at {plaud_bin()}) has no `generate` command.\n"
+                 f"  Upgrade it, or let this skill install its own copy by unsetting PLAUD_BIN "
+                 f"and taking `plaud` off PATH.")
+    subprocess.run([plaud_bin(), "generate", rid, "--wait"], check=True)
 
 
 # --------------------------------------------------------------------------- catalog
@@ -227,6 +344,55 @@ def cmd_config(repo, _args):
         print(f"\nNo {CONFIG_NAME} at {repo.root}. Running ad-hoc: `fetch` works, "
               f"nothing is stored, and where a transcript belongs is not declared anywhere.",
               file=sys.stderr)
+
+
+def cmd_doctor(repo, _args):
+    """Everything that has to be true for this skill to work, and whether it is."""
+    binary = plaud_bin()
+    auth = subprocess.run([binary, "me"], capture_output=True, text=True)
+    lines = [
+        f"python        {platform.python_version()} ({sys.executable})",
+        f"plaud CLI     {_cli_version()} at {binary}",
+        f"  generate    {'yes' if _supports('generate') else 'NO, cannot activate transcription'}",
+        f"  auth        {'ok' if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
+        f"repository    {repo.root}",
+        f"  config      {repo.config_path if os.path.exists(repo.config_path) else 'none (ad-hoc, no filing declared)'}",
+        f"  mode        {'catalog' if repo.hub else 'ad-hoc'}",
+    ]
+    if repo.hub:
+        catalog = f"{len(load_catalog(repo))} recordings" if os.path.exists(repo.catalog) else "not created yet"
+        lines.append(f"  catalog     {catalog}")
+        lines.append(f"  index       {'built' if os.path.exists(repo.db) else 'not built, run `build`'}")
+    print("\n".join(lines))
+    if auth.returncode != 0:
+        print(f"\nAuthenticate with `{os.path.basename(binary)} login`, or put an existing token in "
+              f"PLAUD_TOKEN, which needs no file on disk and is how this runs in a container "
+              f"or on someone else's machine.", file=sys.stderr)
+
+
+def cmd_install(_repo, _args):
+    print(install_cli())
+
+
+def cmd_query(repo, args):
+    repo.require_hub("query")
+    if not os.path.exists(repo.db):
+        sys.exit(f"no index at {repo.rel(repo.db)}. Run `build` first")
+    con = sqlite3.connect(f"file:{repo.db}?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(args.sql).fetchall()
+    except sqlite3.Error as e:
+        sys.exit(f"query failed: {e}")
+    finally:
+        con.close()
+    if args.json:
+        print(json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2))
+    elif rows:
+        if not args.no_header:
+            print("\t".join(rows[0].keys()))
+        for r in rows:
+            print("\t".join("" if v is None else str(v) for v in r))
 
 
 def _default_dir(repo):
@@ -373,7 +539,7 @@ def cmd_pull(repo, args):
     catalog = load_catalog(repo)
     rec = catalog.get(args.id)
     if rec is None:
-        sys.exit(f"unknown recording {args.id} — run `refresh` first")
+        sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     if not rec.get("is_trans"):
         sys.exit(f"{args.id} has no transcript in Plaud yet (activate it: plaud generate {args.id} --wait)")
 
@@ -403,7 +569,7 @@ def cmd_set(repo, args):
     catalog = load_catalog(repo)
     rec = catalog.get(args.id)
     if rec is None:
-        sys.exit(f"unknown recording {args.id} — run `refresh` first")
+        sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     for a in args.assignments:
         if "=" not in a:
             sys.exit(f"bad assignment '{a}', expected key=value")
@@ -452,6 +618,8 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("config", help="print the resolved configuration").set_defaults(fn=cmd_config)
+    sub.add_parser("doctor", help="check the CLI, the auth and this repository's setup").set_defaults(fn=cmd_doctor)
+    sub.add_parser("install", help="(re)install the pinned plaud CLI into the user's data dir").set_defaults(fn=cmd_install)
 
     p = sub.add_parser("fetch", help="download one transcript to a path (works without a catalog)")
     p.add_argument("id")
@@ -471,6 +639,12 @@ def main():
     p.add_argument("--project", help="curation: project label")
     p.add_argument("--file", help="curation: where it was filed, relative to the repository root")
     p.set_defaults(fn=cmd_pull)
+
+    p = sub.add_parser("query", help="run a read-only SQL query against the index")
+    p.add_argument("sql")
+    p.add_argument("--json", action="store_true", help="objects instead of tab-separated rows")
+    p.add_argument("--no-header", action="store_true", help="values only, for piping into another command")
+    p.set_defaults(fn=cmd_query)
 
     p = sub.add_parser("set", help="edit curation fields of one recording")
     p.add_argument("id")
