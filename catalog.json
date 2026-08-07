@@ -12,7 +12,7 @@
   },
   "plugins": [
     {
-      "name": "marketplace",
+      "name": "nexaedge",
       "source": {
         "kind": "local"
       }

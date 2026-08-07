@@ -10,8 +10,8 @@
   },
   "plugins": [
     {
-      "name": "marketplace",
-      "source": "./plugins/marketplace"
+      "name": "nexaedge",
+      "source": "./plugins/nexaedge"
     },
     {
       "name": "artifact-publish",

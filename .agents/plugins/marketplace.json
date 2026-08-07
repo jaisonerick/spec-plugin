@@ -5,10 +5,10 @@
   },
   "plugins": [
     {
-      "name": "marketplace",
+      "name": "nexaedge",
       "source": {
         "source": "local",
-        "path": "./plugins/marketplace"
+        "path": "./plugins/nexaedge"
       },
       "policy": {
         "installation": "AVAILABLE",

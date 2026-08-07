@@ -5,8 +5,8 @@
   },
   "plugins": [
     {
-      "name": "marketplace",
-      "tagline": "Install and manage plugins from this marketplace, on any agent",
+      "name": "nexaedge",
+      "tagline": "Install and manage NexaEdge plugins, on any agent",
       "description": "Front end for the nexaedge marketplace that works the same on Claude Code, Codex and Antigravity. Detects which agent is running, translates to that agent's native install path, and keeps everything at user scope so a plugin is installed once per machine rather than copied into each repository.",
       "platforms": [
         "claude",
@@ -14,7 +14,7 @@
         "antigravity"
       ],
       "keywords": [
-        "marketplace",
+        "nexaedge",
         "plugins",
         "install",
         "skills"

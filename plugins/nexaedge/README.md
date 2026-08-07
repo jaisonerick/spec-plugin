@@ -1,12 +1,12 @@
-# marketplace
+# nexaedge
 
-One front end for the nexaedge marketplace across Claude Code, Codex and Antigravity.
+One front end for the NexaEdge plugin catalog across Claude Code, Codex and Antigravity.
 
 Ask for things in plain language: "what plugins are available?", "install the html report one", "update my plugins". The skill detects which agent is running and translates to that agent's native install path.
 
 ## Why it exists
 
-The three agents install plugins in three different ways, and one of them does not install plugins at all. Without a front end, using this marketplace means remembering which commands your current agent understands.
+The three agents install plugins in three different ways, and one of them does not install plugins at all. Without a front end, using this catalog means remembering which commands your current agent understands.
 
 It also enforces one rule: **everything installs at user scope, once per machine.** The alternative, copying skills into each project repository, is what produces the same skill in five places at five different versions.
 
@@ -24,7 +24,7 @@ Antigravity also offers `plugins.json`, which registers a whole directory as an 
 
 ## Staying current
 
-`scripts/marketplace.sh update --if-stale` is a no-op unless the last update was over 12 hours ago, which is cheap enough to run at session start. On Claude Code that is already wired to a `SessionStart` hook.
+`scripts/nexaedge.sh update --if-stale` is a no-op unless the last update was over 12 hours ago, which is cheap enough to run at session start. On Claude Code that is already wired to a `SessionStart` hook.
 
 On Codex and Antigravity nothing is wired: the format for plugin-provided hooks is not confirmed on either, and guessing it would produce a plugin that fails to load. Run `update` when you want it, or call the script from your own shell startup.
 

@@ -94,7 +94,7 @@ catalog.json                    marketplace identity + {name, source} per plugin
 .claude-plugin/plugin.json                   Claude manifest
 .agents/plugins/marketplace.json             Codex catalog
 .codex-plugin/plugin.json                    Codex manifest
-index.json                                   runtime listing the marketplace plugin fetches
+index.json                                   runtime listing the nexaedge plugin fetches
 ```
 
 CI regenerates after every version bump. Editing a generated file works until the next push, then silently reverts.
@@ -117,7 +117,7 @@ The generator refuses to run on an inconsistent marketplace: a plugin directory 
 Behaviour verified on Antigravity 2.0.6 by probing a running install, because its documentation and its implementation disagree:
 
 - The Agent Plugins manifest loads fine. `$schema`, `version`, `author`, `keywords` and `extensions` do not interfere, which is why `plugins/<name>/plugin.json` serves as both the standard manifest and Antigravity's.
-- `~/.gemini/config/plugins/` is the global customization root, and **symlinks into it are followed**. That is how the `marketplace` plugin installs.
+- `~/.gemini/config/plugins/` is the global customization root, and **symlinks into it are followed**. That is how the `nexaedge` plugin installs.
 - `plugins.json` works, but **`include_only` is unusable**: any entry carrying one loads nothing at all, with no error, whatever the pattern. The docs say it matches directory names; it does not behave that way. Do not reach for it.
 - Customizations are read when the language server starts, so a window reload is not always enough. Quit and reopen.
 

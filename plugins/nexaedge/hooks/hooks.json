@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/marketplace.sh update --if-stale >/dev/null 2>&1 || true"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/nexaedge.sh update --if-stale >/dev/null 2>&1 || true"
           }
         ]
       }
