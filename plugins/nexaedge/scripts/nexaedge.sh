@@ -264,7 +264,7 @@ cmd_list() {
 }
 
 cmd_install() {
-  [[ $# -gt 0 ]] || die "install needs at least one plugin name (see: marketplace.sh list)"
+  [[ $# -gt 0 ]] || die "install needs at least one plugin name (see: nexaedge.sh list)"
   resolve_platform
 
   local p rc
@@ -273,8 +273,8 @@ cmd_install() {
     catalog_supports "$p" "$PLATFORM" || rc=$?
     case $rc in
       0) ;;
-      1) die "'$p' does not run on $PLATFORM (see: marketplace.sh list)" ;;
-      *) die "'$p' is not in the catalog (see: marketplace.sh list)" ;;
+      1) die "'$p' does not run on $PLATFORM (see: nexaedge.sh list)" ;;
+      *) die "'$p' is not in the catalog (see: nexaedge.sh list)" ;;
     esac
   done
 
@@ -335,7 +335,7 @@ cmd_update() {
 
 usage() {
   cat <<EOF
-Usage: marketplace.sh <command> [--platform claude|codex|antigravity] [args]
+Usage: nexaedge.sh <command> [--platform claude|codex|antigravity] [args]
 
   list [query]        List plugins available for this agent
   install <name>...   Install plugins for this agent, at user/global scope

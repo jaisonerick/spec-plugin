@@ -1,17 +1,17 @@
 ---
-name: marketplace
-description: Install, find, update and remove plugins from the nexaedge marketplace, on whichever agent is running. Use when someone asks to install a plugin or skill, wants to know what is available, asks to update their plugins, or says something like "instala o marketplace", "what plugins do I have", "add the html report skill", "update my plugins". Also use right after this plugin is installed, to explain to the person what they just got.
+name: plugins
+description: Install, find, update and remove NexaEdge plugins, on whichever agent is running. Use when someone asks to install a plugin or skill, wants to know what is available, asks to update their plugins, or says something like "what can I install", "what plugins do I have", "add the html report skill", "update my plugins". Also use right after the nexaedge plugin is installed, to explain to the person what they just got.
 ---
 
-# Marketplace
+# NexaEdge plugins
 
-One front end for the nexaedge marketplace across Claude Code, Codex and Antigravity.
+One front end for the NexaEdge plugin catalog across Claude Code, Codex and Antigravity.
 
 Everything installs at **user scope**, once per machine. Never copy a skill into a project repository to make it available: that is what creates the same skill in five places with five different versions.
 
 ## The script
 
-All work goes through `scripts/marketplace.sh` in this plugin, which is at `../../scripts/marketplace.sh` relative to this file. On Claude Code you can also write `"${CLAUDE_PLUGIN_ROOT}"/scripts/marketplace.sh`.
+All work goes through `scripts/nexaedge.sh` in this plugin, which is at `../../scripts/nexaedge.sh` relative to this file. On Claude Code you can also write `"${CLAUDE_PLUGIN_ROOT}"/scripts/nexaedge.sh`.
 
 Resolve it once and reuse it. Referred to as `MKT` below.
 
@@ -19,7 +19,7 @@ Resolve it once and reuse it. Referred to as `MKT` below.
 "$MKT" list [query]        # what this agent can install
 "$MKT" install <name>...   # install at user/global scope
 "$MKT" remove <name>...    # remove
-"$MKT" update              # refresh the marketplace and installed plugins
+"$MKT" update              # refresh the catalog and installed plugins
 "$MKT" status              # detected platform + what is installed
 "$MKT" detect              # just the platform
 ```
@@ -42,14 +42,14 @@ The script detects which agent is running from environment markers. If more than
 
 ## Right after this plugin is installed
 
-The person who just bootstrapped has the `marketplace` plugin and nothing else. Do not install anything more on your own. Tell them, briefly:
+The person who just bootstrapped has the `nexaedge` plugin and nothing else. Do not install anything more on your own. Tell them, briefly:
 
 1. It is installed at user scope, so it works in every project on this machine, and nothing was added to the repository they are in.
 2. They can now ask for things in plain language: "what plugins are available?", "install the html report one", "update my plugins".
 3. Run `"$MKT" list` and show them what they can install, so the next step is concrete rather than abstract.
 4. The activation step for this agent, from the list above.
 
-Keep it to a few lines. They asked for a marketplace, not a tutorial.
+Keep it to a few lines. They asked for a setup, not a tutorial.
 
 ## Keeping plugins current
 

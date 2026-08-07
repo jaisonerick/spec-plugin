@@ -6,23 +6,25 @@ Plugins and skills for coding agents. Works with **Claude Code**, **Codex** and 
 
 ## Install
 
-Point your agent at this repository and ask it to set the marketplace up. Something like:
+Point your agent at this repository and name the file it should follow. Something like:
 
-> Instala o marketplace da NexaEdge: https://github.com/nexaedge/nexaedge-marketplace
+> Leia o INSTALL.md deste repositório e siga as instruções para o seu agente: https://github.com/nexaedge/nexaedge-marketplace
 
-The agent reads `INSTALL.md`, installs the `marketplace` plugin at user scope, and explains what you can do next. Nothing is added to whatever repository you happen to be in.
+Naming the file matters. Given only a URL, an agent that already knows how to add a plugin catalog will do that from memory and stop there, without ever opening the repository.
+
+The agent installs the `nexaedge` plugin at user scope and explains what you can do next. Nothing is added to whatever repository you happen to be in.
 
 From then on you talk to it normally: "what plugins are available?", "install the html report one", "update my plugins".
 
 ## Why one plugin first
 
-The `marketplace` plugin is the front end for the other ones. It detects which agent is running and translates to that agent's native install path, so a plugin lands once per machine instead of being copied into every project. Bootstrapping just this one keeps the first install small and lets you choose the rest in conversation.
+The `nexaedge` plugin is the front end for the other ones. It detects which agent is running and translates to that agent's native install path, so a plugin lands once per machine instead of being copied into every project. Bootstrapping just this one keeps the first install small and lets you choose the rest in conversation.
 
 ## Plugins
 
 | Plugin | Claude | Codex | Antigravity | What it does |
 |---|:-:|:-:|:-:|---|
-| marketplace | ● | ● | ● | Install and manage plugins from this marketplace |
+| nexaedge | ● | ● | ● | Install and manage everything else here, on any agent |
 | artifact-publish | ● | ● | ● | Publish a self-contained HTML file and get a link |
 | html-report | ● | ● | ● | Turn analysis into an interactive HTML report |
 | cloudflare-dns | ● | ● | ● | Manage Cloudflare DNS through Terraform |
@@ -66,7 +68,7 @@ bin/mkt add <url>     # vendor a skill or reference a plugin
 bin/mkt update        # check vendored skills for upstream updates
 ```
 
-The generator refuses to run on an inconsistent catalog, so `bin/mkt generate` doubles as the check. The `marketplace` plugin also fetches `catalog.json` at runtime to list what is available, which means a wrong entry is user-visible.
+The generator refuses to run on an inconsistent catalog, so `bin/mkt generate` doubles as the check. The `nexaedge` plugin also fetches `index.json` at runtime to list what is available, which means a wrong entry is user-visible.
 
 Validate before pushing:
 
