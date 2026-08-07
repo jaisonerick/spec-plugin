@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v2] - 2026-08-07
+
+### Changed
+- plaud: run anywhere — install the CLI, drop the sqlite3 dependency
+
 ## [Plugin: html-report v2] - 2026-08-03
 
 ### Changed
