@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v46] - 2026-08-07
+
+### Changed
+- fix: make INSTALL.md imperative, after Antigravity read it and did nothing
+
 ## [Plugin: nexaedge v3] - 2026-08-07
 
 ### Changed
