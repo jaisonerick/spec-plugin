@@ -1,0 +1,80 @@
+{
+  "name": "nexaedge-marketplace",
+  "interface": {
+    "displayName": "NexaEdge"
+  },
+  "plugins": [
+    {
+      "name": "marketplace",
+      "source": {
+        "source": "local",
+        "path": "./plugins/marketplace"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "artifact-publish",
+      "source": {
+        "source": "local",
+        "path": "./plugins/artifact-publish"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "html-report",
+      "source": {
+        "source": "local",
+        "path": "./plugins/html-report"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "cloudflare-dns",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cloudflare-dns"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "plaud",
+      "source": {
+        "source": "local",
+        "path": "./plugins/plaud"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "vendored-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/vendored-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

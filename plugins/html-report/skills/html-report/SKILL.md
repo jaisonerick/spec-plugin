@@ -1,6 +1,7 @@
 ---
 name: html-report
-description: Build a self-contained interactive HTML report from analysis results — charts, cohort matrices, sortable tables, stat tiles, all inline in one file that opens by double-click with no network. Handles the visual layer only: you bring the numbers and the message, this decides the form, the theme and the markup. Use when turning a finished analysis into a deliverable someone else will open, or when asked for a report, dashboard, detalhamento, painel, one-pager or "manda em HTML". Carries no brand of its own: it derives a theme from a brand color, or lifts one verbatim out of a report it built earlier. Triggers "monta o relatório", "gera o HTML", "quero isso em relatório", "build a report", "make this a dashboard", "põe num HTML pra mandar".
+description: >-
+  Build a self-contained interactive HTML report from analysis results — charts, cohort matrices, sortable tables, stat tiles, all inline in one file that opens by double-click with no network. Handles the visual layer only: you bring the numbers and the message, this decides the form, the theme and the markup. Use when turning a finished analysis into a deliverable someone else will open, or when asked for a report, dashboard, detalhamento, painel, one-pager or "manda em HTML". Carries no brand of its own: it derives a theme from a brand color, or lifts one verbatim out of a report it built earlier. Triggers "monta o relatório", "gera o HTML", "quero isso em relatório", "build a report", "make this a dashboard", "põe num HTML pra mandar".
 ---
 
 # html-report — the deliverable, not the analysis

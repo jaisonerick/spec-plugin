@@ -1,0 +1,34 @@
+{
+  "name": "cloudflare-dns",
+  "version": "2.0.0",
+  "description": "Manage Cloudflare DNS zones and records through Terraform in the nexaedge/infrastructure repository. Automates the full workflow: edit Terraform files, open PR, review plan, merge, watch apply, and verify.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cloudflare DNS",
+    "shortDescription": "Manage Cloudflare DNS zones and records through Terraform",
+    "longDescription": "Manage Cloudflare DNS zones and records through Terraform in the nexaedge/infrastructure repository. Automates the full workflow: edit Terraform files, open PR, review plan, merge, watch apply, and verify.",
+    "developerName": "Jaison Erick",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Point this subdomain at the new service",
+      "Add the SPF and DKIM records"
+    ]
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "dns",
+    "cloudflare",
+    "terraform",
+    "domain"
+  ]
+}

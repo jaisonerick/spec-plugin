@@ -35,7 +35,7 @@ jobs:
           done
           echo "changed_plugins=$CHANGED_PLUGINS" >> "$GITHUB_OUTPUT"
 
-          if echo "$CHANGED" | grep -qE '^\.claude-plugin/|^README\.md$|^CLAUDE\.md$'; then
+          if echo "$CHANGED" | grep -qE '^\.claude-plugin/|^\.agents/|^catalog\.json$|^README\.md$|^INSTALL\.md$|^CLAUDE\.md$'; then
             echo "marketplace_changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "marketplace_changed=false" >> "$GITHUB_OUTPUT"
@@ -48,7 +48,8 @@ jobs:
           BUMPED_PLUGINS=""
 
           for plugin_name in ${{ steps.changes.outputs.changed_plugins }}; do
-            MANIFEST="plugins/${plugin_name}/.claude-plugin/plugin.json"
+            # The Agent Plugins manifest is the source; the rest is generated.
+            MANIFEST="plugins/${plugin_name}/plugin.json"
             if [ ! -f "$MANIFEST" ]; then
               echo "Skipping ${plugin_name}: no plugin.json found"
               continue
@@ -70,13 +71,19 @@ jobs:
       - name: Bump marketplace version
         if: steps.changes.outputs.marketplace_changed == 'true'
         run: |
-          CURRENT=$(jq -r '.metadata.version // "0"' .claude-plugin/marketplace.json)
+          CURRENT=$(jq -r '.marketplace.version // "0"' catalog.json)
           CURRENT_NUM=${CURRENT#v}
           NEW_VERSION="v$(( CURRENT_NUM + 1 ))"
-          jq --arg v "$NEW_VERSION" '.metadata.version = $v' .claude-plugin/marketplace.json > tmp.json
-          mv tmp.json .claude-plugin/marketplace.json
+          jq --arg v "$NEW_VERSION" '.marketplace.version = $v' catalog.json > tmp.json
+          mv tmp.json catalog.json
           echo "MARKETPLACE_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
           echo "Bumped marketplace: $CURRENT → $NEW_VERSION"
+
+      # The standard manifests are the source: every agent's manifests are
+      # rebuilt from them after a bump, or they silently drift.
+      - name: Regenerate agent manifests
+        if: steps.changes.outputs.changed_plugins != '' || steps.changes.outputs.marketplace_changed == 'true'
+        run: python3 bin/lib/generate.py
 
       - name: Update CHANGELOG
         if: steps.changes.outputs.changed_plugins != '' || steps.changes.outputs.marketplace_changed == 'true'
@@ -119,6 +126,13 @@ jobs:
           [ -n "${BUMPED_PLUGINS:-}" ] && PARTS="$BUMPED_PLUGINS"
           [ -n "${MARKETPLACE_VERSION:-}" ] && PARTS="${PARTS:+$PARTS, }marketplace ${MARKETPLACE_VERSION}"
 
-          git add "plugins/"*"/.claude-plugin/plugin.json" .claude-plugin/marketplace.json CHANGELOG.md
+          git add \
+            catalog.json index.json \
+            "plugins/"*"/plugin.json" \
+            "plugins/"*"/.claude-plugin/plugin.json" \
+            "plugins/"*"/.codex-plugin/plugin.json" \
+            .claude-plugin/marketplace.json \
+            .agents/plugins/marketplace.json \
+            CHANGELOG.md
           git commit -m "chore: bump ${PARTS} [skip-bump]"
           git push

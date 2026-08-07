@@ -1,0 +1,35 @@
+{
+  "name": "marketplace",
+  "version": "1.0.0",
+  "description": "Front end for the nexaedge marketplace that works the same on Claude Code, Codex and Antigravity. Detects which agent is running, translates to that agent's native install path, and keeps everything at user scope so a plugin is installed once per machine rather than copied into each repository.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Marketplace",
+    "shortDescription": "Install and manage plugins from this marketplace, on any agent",
+    "longDescription": "Front end for the nexaedge marketplace that works the same on Claude Code, Codex and Antigravity. Detects which agent is running, translates to that agent's native install path, and keeps everything at user scope so a plugin is installed once per machine rather than copied into each repository.",
+    "developerName": "Jaison Erick",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "What plugins can I install here?",
+      "Install the html report plugin",
+      "Update my plugins"
+    ]
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "marketplace",
+    "plugins",
+    "install",
+    "skills"
+  ]
+}

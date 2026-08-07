@@ -1,0 +1,223 @@
+{
+  "marketplace": {
+    "name": "nexaedge-marketplace",
+    "displayName": "NexaEdge"
+  },
+  "plugins": [
+    {
+      "name": "marketplace",
+      "tagline": "Install and manage plugins from this marketplace, on any agent",
+      "description": "Front end for the nexaedge marketplace that works the same on Claude Code, Codex and Antigravity. Detects which agent is running, translates to that agent's native install path, and keeps everything at user scope so a plugin is installed once per machine rather than copied into each repository.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "marketplace",
+        "plugins",
+        "install",
+        "skills"
+      ]
+    },
+    {
+      "name": "artifact-publish",
+      "tagline": "Publish a self-contained HTML file and get a shareable link",
+      "description": "Publish a self-contained HTML file as a shareable artifact on artifacts.nexaedge.com. Sign in with any Google Workspace account: the artifact belongs to that account's domain, and only that domain can open it. Also issues expiring links for people outside the domain.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "html",
+        "publish",
+        "share",
+        "report",
+        "artifact"
+      ]
+    },
+    {
+      "name": "html-report",
+      "tagline": "Turn finished analysis into a self-contained interactive HTML report",
+      "description": "Turn finished analysis results into a self-contained interactive HTML report: charts, cohort heatmaps, sortable tables and stat tiles, all inline in one file that opens by double-click with no network. Carries no brand of its own — it derives a theme from a brand color, or lifts one verbatim out of a report it built earlier.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "report",
+        "dashboard",
+        "charts",
+        "html",
+        "dataviz"
+      ]
+    },
+    {
+      "name": "cloudflare-dns",
+      "tagline": "Manage Cloudflare DNS zones and records through Terraform",
+      "description": "Manage Cloudflare DNS zones and records through Terraform in the nexaedge/infrastructure repository. Automates the full workflow: edit Terraform files, open PR, review plan, merge, watch apply, and verify.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "dns",
+        "cloudflare",
+        "terraform",
+        "domain"
+      ]
+    },
+    {
+      "name": "plaud",
+      "tagline": "Bring Plaud.ai voice recordings and transcripts into a repository",
+      "description": "Turn Plaud.ai voice recordings into text inside the repository you are working in: find the recording, activate its transcription, bring the transcript down. Where that transcript then gets filed is read from the repository's own .plaud.json, never assumed, so the same skill serves a knowledge base and a client project without knowing either.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "plaud",
+        "recording",
+        "transcript",
+        "meeting"
+      ]
+    },
+    {
+      "name": "vendored-skills",
+      "tagline": "Third-party skills vendored here and pinned to a commit",
+      "description": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "skills",
+        "vendored",
+        "mcp",
+        "markdown",
+        "design"
+      ]
+    },
+    {
+      "name": "spec-plugin",
+      "tagline": "Full pipeline from ideation to verified code, with agents and hooks",
+      "description": "Spec-driven project execution pipeline, from ideation to verified deliverables, orchestrated by AI agents. Works with any project type. Built on a team of subagents plus a tool-use hook, so it needs an agent that can run plugin-provided subagents and hooks.",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "spec",
+        "agents",
+        "orchestration",
+        "workflow"
+      ],
+      "requires": "plugin-provided subagents and hooks"
+    },
+    {
+      "name": "linear-spec-plugin",
+      "tagline": "The spec pipeline, with Linear as the system of record",
+      "description": "Spec-driven project execution pipeline backed by Linear. Same skills and agents as spec-plugin, but writes specs, stories and validation to Linear via GraphQL while keeping reasoning artifacts on disk.",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "spec",
+        "linear",
+        "agents",
+        "orchestration"
+      ],
+      "requires": "plugin-provided subagents"
+    },
+    {
+      "name": "interface-design",
+      "tagline": "Craft-first interface design for product UI",
+      "description": "Craft-first interface design for product UI",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "design",
+        "ui",
+        "interface",
+        "review"
+      ],
+      "requires": "an external repository that ships only a Claude manifest"
+    },
+    {
+      "name": "frontend-design",
+      "tagline": "Distinctive visual direction when building or reshaping UI",
+      "description": "Distinctive visual direction when building or reshaping UI",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "design",
+        "frontend",
+        "typography"
+      ],
+      "requires": "an external repository that ships only a Claude manifest"
+    },
+    {
+      "name": "commit-commands",
+      "tagline": "Git commit, push and PR workflows",
+      "description": "Git commit, push and PR workflows",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "git",
+        "commit",
+        "pr"
+      ],
+      "requires": "an external repository that ships only a Claude manifest"
+    },
+    {
+      "name": "typescript-lsp",
+      "tagline": "TypeScript code intelligence through a language server",
+      "description": "TypeScript code intelligence through a language server",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "lsp",
+        "typescript",
+        "diagnostics"
+      ],
+      "requires": "LSP server support, which only Claude Code exposes to plugins"
+    },
+    {
+      "name": "pyright-lsp",
+      "tagline": "Python code intelligence through a language server",
+      "description": "Python code intelligence through a language server",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "lsp",
+        "python",
+        "pyright",
+        "diagnostics"
+      ],
+      "requires": "LSP server support, which only Claude Code exposes to plugins"
+    },
+    {
+      "name": "rust-analyzer-lsp",
+      "tagline": "Rust code intelligence through a language server",
+      "description": "Rust code intelligence through a language server",
+      "platforms": [
+        "claude"
+      ],
+      "keywords": [
+        "lsp",
+        "rust",
+        "diagnostics"
+      ],
+      "requires": "LSP server support, which only Claude Code exposes to plugins"
+    }
+  ]
+}

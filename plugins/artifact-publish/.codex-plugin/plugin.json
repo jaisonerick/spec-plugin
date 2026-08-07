@@ -1,0 +1,35 @@
+{
+  "name": "artifact-publish",
+  "version": "2.0.0",
+  "description": "Publish a self-contained HTML file as a shareable artifact on artifacts.nexaedge.com. Sign in with any Google Workspace account: the artifact belongs to that account's domain, and only that domain can open it. Also issues expiring links for people outside the domain.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Artifact Publish",
+    "shortDescription": "Publish a self-contained HTML file and get a shareable link",
+    "longDescription": "Publish a self-contained HTML file as a shareable artifact on artifacts.nexaedge.com. Sign in with any Google Workspace account: the artifact belongs to that account's domain, and only that domain can open it. Also issues expiring links for people outside the domain.",
+    "developerName": "Jaison Erick",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Publish this report and give me the link",
+      "Share this dashboard with the team"
+    ]
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "html",
+    "publish",
+    "share",
+    "report",
+    "artifact"
+  ]
+}

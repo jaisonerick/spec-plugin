@@ -44,14 +44,14 @@ _mkt() {
   local cur prev words cword
   _init_completion || return
 
-  local commands="add remove update completions"
+  local commands="add remove update generate completions"
 
   # Find the subcommand
   local cmd=""
   local i
   for ((i=1; i < cword; i++)); do
     case "${words[i]}" in
-      add|remove|update|completions) cmd="${words[i]}"; break ;;
+      add|remove|update|generate|completions) cmd="${words[i]}"; break ;;
     esac
   done
 

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "html-report",
+  "version": "v2",
+  "description": "Turn finished analysis results into a self-contained interactive HTML report: charts, cohort heatmaps, sortable tables and stat tiles, all inline in one file that opens by double-click with no network. Carries no brand of its own — it derives a theme from a brand color, or lifts one verbatim out of a report it built earlier.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "report",
+    "dashboard",
+    "charts",
+    "html",
+    "dataviz"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "HTML Report",
+      "tagline": "Turn finished analysis into a self-contained interactive HTML report",
+      "category": "Productivity",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "prompts": [
+        "Turn this analysis into a report",
+        "Build me a dashboard from these numbers"
+      ]
+    }
+  }
+}

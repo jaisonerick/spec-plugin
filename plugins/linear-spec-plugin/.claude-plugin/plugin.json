@@ -1,7 +1,7 @@
 {
   "name": "linear-spec-plugin",
+  "description": "Spec-driven project execution pipeline backed by Linear. Same skills and agents as spec-plugin, but writes specs, stories and validation to Linear via GraphQL while keeping reasoning artifacts on disk.",
   "version": "v1",
-  "description": "Spec-driven project execution pipeline backed by Linear. Same skills and agents as spec-plugin, but writes specs/stories/validation to Linear via GraphQL while keeping reasoning artifacts on disk.",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"

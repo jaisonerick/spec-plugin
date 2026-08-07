@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "spec-plugin",
+  "version": "v14",
+  "description": "Spec-driven project execution pipeline, from ideation to verified deliverables, orchestrated by AI agents. Works with any project type. Built on a team of subagents plus a tool-use hook, so it needs an agent that can run plugin-provided subagents and hooks.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "spec",
+    "agents",
+    "orchestration",
+    "workflow"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "Spec Plugin",
+      "tagline": "Full pipeline from ideation to verified code, with agents and hooks",
+      "category": "Developer Tools",
+      "platforms": [
+        "claude"
+      ],
+      "requires": "plugin-provided subagents and hooks"
+    }
+  }
+}

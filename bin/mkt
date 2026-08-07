@@ -23,6 +23,7 @@ Commands:
   disable      Disable plugins (interactive picker)
   remove       Remove plugins or skills (interactive picker)
   update       Check vendored skills for upstream updates
+  generate     Regenerate the Codex and Antigravity manifests
   completions  Output shell completion setup instructions
 
 Run 'mkt <command> --help' for command-specific usage.
@@ -890,6 +891,28 @@ cmd_remove() {
   deploy "feat: remove $names" "${stage_paths[@]}" "--" "${deploy_changes[@]}"
 }
 
+# ── Command: generate ─────────────────────────────────────────────────────────
+
+cmd_generate() {
+  if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    cat <<EOF
+Usage: mkt generate
+
+Regenerate the derived manifests from the Claude manifests plus catalog.json:
+
+  plugins/<name>/.codex-plugin/plugin.json   Codex plugin manifest
+  plugins/<name>/plugin.json                 Antigravity plugin marker
+  .agents/plugins/marketplace.json           Codex marketplace catalog
+
+Run this after adding a plugin or editing catalog.json. These files are derived,
+so never edit them by hand.
+EOF
+    exit 0
+  fi
+
+  python3 "$BIN_DIR/lib/generate.py"
+}
+
 # ── Command: completions ──────────────────────────────────────────────────────
 
 cmd_completions() {
@@ -949,6 +972,7 @@ case "$command" in
   disable)     cmd_disable "$@" ;;
   remove|rm)   cmd_remove "$@" ;;
   update)      cmd_update "$@" ;;
+  generate)    cmd_generate "$@" ;;
   completions) cmd_completions "$@" ;;
   --help|-h)   usage ;;
   *)           echo "Error: Unknown command '$command'"; usage ;;

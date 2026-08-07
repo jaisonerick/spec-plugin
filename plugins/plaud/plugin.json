@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "plaud",
+  "version": "v5",
+  "description": "Turn Plaud.ai voice recordings into text inside the repository you are working in: find the recording, activate its transcription, bring the transcript down. Where that transcript then gets filed is read from the repository's own .plaud.json, never assumed, so the same skill serves a knowledge base and a client project without knowing either.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "plaud",
+    "recording",
+    "transcript",
+    "meeting"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "Plaud",
+      "tagline": "Bring Plaud.ai voice recordings and transcripts into a repository",
+      "category": "Productivity",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "prompts": [
+        "Bring in the transcript from today's call",
+        "Process the meeting I just recorded"
+      ]
+    }
+  }
+}

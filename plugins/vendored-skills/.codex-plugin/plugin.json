@@ -1,0 +1,34 @@
+{
+  "name": "vendored-skills",
+  "version": "4.0.0",
+  "description": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
+  "author": {
+    "name": "Anthropic",
+    "url": "https://github.com/anthropics"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Vendored Skills",
+    "shortDescription": "Third-party skills vendored here and pinned to a commit",
+    "longDescription": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
+    "developerName": "Anthropic",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Convert this PDF to markdown",
+      "Review my UI against the guidelines"
+    ]
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "skills",
+    "vendored",
+    "mcp",
+    "markdown",
+    "design"
+  ]
+}
