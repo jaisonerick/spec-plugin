@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v4] - 2026-08-07
+
+### Changed
+- plaud: a new machine authenticates with an email and a password
+
 ## [Plugin: plaud v3] - 2026-08-07
 
 ### Changed
