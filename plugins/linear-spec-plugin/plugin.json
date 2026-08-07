@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "linear-spec-plugin",
-  "version": "v1",
+  "version": "v2",
   "description": "Spec-driven project execution pipeline backed by Linear. Same skills and agents as spec-plugin, but writes specs, stories and validation to Linear via GraphQL while keeping reasoning artifacts on disk.",
   "author": {
     "name": "Jaison Erick",

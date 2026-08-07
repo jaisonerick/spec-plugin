@@ -8,6 +8,51 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: artifact-publish v3] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: cloudflare-dns v3] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: html-report v3] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: linear-spec-plugin v2] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: marketplace v2] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: plaud v6] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: spec-plugin v15] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Plugin: vendored-skills v5] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
+## [Marketplace v44] - 2026-08-07
+
+### Changed
+- Merge pull request #5 from nexaedge/multi-agent-standards
+
 ## [Plugin: plaud v5] - 2026-08-07
 
 ### Changed

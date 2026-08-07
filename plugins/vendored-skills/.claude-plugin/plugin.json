@@ -1,7 +1,7 @@
 {
   "name": "vendored-skills",
   "description": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
-  "version": "v4",
+  "version": "v5",
   "author": {
     "name": "Anthropic",
     "url": "https://github.com/anthropics"

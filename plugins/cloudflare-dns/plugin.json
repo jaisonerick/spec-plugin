@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "cloudflare-dns",
-  "version": "v2",
+  "version": "v3",
   "description": "Manage Cloudflare DNS zones and records through Terraform in the nexaedge/infrastructure repository. Automates the full workflow: edit Terraform files, open PR, review plan, merge, watch apply, and verify.",
   "author": {
     "name": "Jaison Erick",

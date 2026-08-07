@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "spec-plugin",
-  "version": "v14",
+  "version": "v15",
   "description": "Spec-driven project execution pipeline, from ideation to verified deliverables, orchestrated by AI agents. Works with any project type. Built on a team of subagents plus a tool-use hook, so it needs an agent that can run plugin-provided subagents and hooks.",
   "author": {
     "name": "Jaison Erick",

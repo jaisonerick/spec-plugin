@@ -1,7 +1,7 @@
 {
   "name": "artifact-publish",
   "description": "Publish a self-contained HTML file as a shareable artifact on artifacts.nexaedge.com. Sign in with any Google Workspace account: the artifact belongs to that account's domain, and only that domain can open it. Also issues expiring links for people outside the domain.",
-  "version": "v2",
+  "version": "v3",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"

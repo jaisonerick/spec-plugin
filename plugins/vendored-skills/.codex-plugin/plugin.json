@@ -1,6 +1,6 @@
 {
   "name": "vendored-skills",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Vendored skills from external repositories, copied into this marketplace and pinned to the upstream commit they came from, so they keep working when upstream moves.",
   "author": {
     "name": "Anthropic",
