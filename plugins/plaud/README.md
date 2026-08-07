@@ -22,7 +22,16 @@ What a fresh environment still needs is an authenticated account:
 | `PLAUD_BIN` | Use this binary instead of resolving one. |
 | `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
 
-Interactively, `plaud login --password` asks for the email and password and comes back authenticated. `plaud login` on its own uses a one-time code by email instead, which is the only option for an account created through Google, Apple or Microsoft, since those have no password until one is set in the Plaud app.
+**The assistant signs the user in, and never asks for a password.** When the account is not authenticated, the skill runs the login as a conversation: it asks for the email, sends a one-time code, asks for the six digits that arrived in the inbox, and stores the token. A code expires in minutes and works once, which is what makes it safe to say out loud; a password is neither. Nothing in that flow needs a browser, an open port or a visible terminal, so it behaves the same in a terminal, a desktop app, a phone or a sandbox.
+
+The two halves are callable separately, which is what makes it drivable by something that is not the account owner:
+
+```bash
+plaud login --send-code --email you@example.com --json   # → {"otp_token": "..."}
+plaud login --email you@example.com --otp-token <handle> --code 123456
+```
+
+`plaud login --password` still exists for unattended provisioning, and accounts created through Google, Apple or Microsoft have no password at all until one is set in the Plaud app.
 
 The resulting token is a JWT valid for months and nothing renews it, so `doctor` reports the expiry date alongside everything else it checks.
 

@@ -58,7 +58,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.8.0"
+CLI_VERSION = "0.9.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -396,9 +396,14 @@ def cmd_doctor(repo, _args):
         lines.append(f"  index       {'built' if os.path.exists(repo.db) else 'not built, run `build`'}")
     print("\n".join(lines))
     if auth.returncode != 0:
-        print(f"\nAuthenticate with `{os.path.basename(binary)} login`, or put an existing token in "
-              f"PLAUD_TOKEN, which needs no file on disk and is how this runs in a container "
-              f"or on someone else's machine.", file=sys.stderr)
+        cli = os.path.basename(binary)
+        print(f"\nNobody is signed in. Do it for the user, in the conversation, and ask for the\n"
+              f"emailed code rather than their password:\n\n"
+              f"  1. {cli} login --send-code --email <their email> --json    # prints otp_token\n"
+              f"  2. ask for the six digits that just arrived in their inbox\n"
+              f"  3. {cli} login --email <email> --otp-token <otp_token> --code <code>\n\n"
+              f"An existing token can also arrive in PLAUD_TOKEN, which needs no file on disk.",
+              file=sys.stderr)
 
 
 def cmd_install(_repo, _args):

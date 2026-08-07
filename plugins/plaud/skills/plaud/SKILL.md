@@ -15,7 +15,9 @@ Plaud.ai records meetings and calls; this skill is how that audio becomes text i
 
 It stops at the transcript. Turning it into a note, filing it, naming the file, choosing the language: that is the repository's business, and this skill reads it from the repository rather than assuming it. Do not invent a destination.
 
-**Python 3 is the only thing that has to be there.** The Plaud client is a single Go binary, and if one is not already on PATH the engine installs the pinned release into the user's data directory on first use: no sudo, no PATH changes, nothing written inside the plugin. That needs network on the first run, and an authenticated account (see *Setup*).
+**Python 3 is the only thing that has to be there.** The Plaud client is a single Go binary, and if one is not already on PATH the engine installs the pinned release into the user's data directory on first use: no sudo, no PATH changes, nothing written inside the plugin. That needs network on the first run, and an account that is signed in.
+
+**Signing in is your job, not the user's** (see *Signing the user in*). Assume the person you are working for will never run a command: when the account is not authenticated, walk them through it in the conversation, asking for an emailed code and never for a password.
 
 ```bash
 HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
@@ -27,7 +29,7 @@ HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
 python3 "$HUB" doctor
 ```
 
-One report covering the CLI, whether it can activate transcription, whether the account is authenticated, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem.
+One report covering the CLI, whether it can activate transcription, whether the account is authenticated, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem. `NOT AUTHENTICATED` sends you to *Signing the user in*, which is a two-minute conversation, not a blocker to hand back.
 
 ```bash
 python3 "$HUB" config
@@ -133,20 +135,46 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 **The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to have `generate`, the error says so rather than failing obscurely.
 
-**Authentication is the part a fresh environment still needs.** Three ways in:
+## Signing the user in
 
-- `plaud login --password` takes the account's email and password and comes back authenticated, writing the token to `~/.config/plaud/token.json`. The password is prompted for without echo; `--password-stdin` and `PLAUD_PASSWORD` cover the case where there is no one at the keyboard. This is the one to reach for when setting up a machine, since it needs nothing else.
-- `plaud login` sends a one-time code to the account's email instead. It needs the mailbox, and it is the only option for an account created through Google, Apple or Microsoft, which has no password until one is set in the Plaud app.
-- `PLAUD_TOKEN` in the environment carries a token someone already obtained. Nothing is written to disk, which suits an ephemeral container or a machine that is not yours to leave credentials on.
+When `doctor` reports `NOT AUTHENTICATED`, **conduct the login yourself, in the conversation.** The person you are working for is not going to open a terminal, and they do not need to: two questions and two commands is the whole procedure.
 
-The token is a JWT valid for months, and **nothing in this stack refreshes it**. When it expires the only cure is another login, so `doctor` prints the expiry date instead of letting a task discover it halfway through. If a command reports an expired session, stop and get a valid token rather than working around it.
+**Never ask for their password.** A password opens the account forever and lands in the transcript; a login code expires in minutes and works once. Ask for the code.
+
+1. Ask for the email on the Plaud account, and send the code:
+
+   ```bash
+   plaud login --send-code --email <email> --json
+   ```
+
+   That prints an `otp_token`, which is a handle for the pending login, not a credential to keep. Nothing is stored yet.
+
+2. Ask the user for the code that just arrived in their inbox (six digits, from Plaud), and finish:
+
+   ```bash
+   plaud login --email <email> --otp-token <otp_token> --code <code>
+   ```
+
+   `Token saved. You're logged in.` means done. Confirm with `doctor` and carry on with what they originally asked for.
+
+If it comes back `Code expired or invalid`, the code aged out or was mistyped: go back to step 1 and send a fresh one. The handle from the first call belongs to that code, so a new code needs a new handle.
+
+Nothing in this needs a browser, an open port, or a terminal the user can see, so it works the same in a terminal, a desktop app, a phone or a sandbox. Do not try to open a browser.
+
+Two other ways in exist, and neither replaces the above as the default:
+
+- **`PLAUD_TOKEN`** in the environment, when the user already has a token. Nothing is written to disk, which suits an ephemeral container.
+- **`plaud login --password`**, only when the user volunteers a password or a machine is being provisioned unattended (`--password-stdin`, `PLAUD_PASSWORD`). Accounts created through Google, Apple or Microsoft have no password at all until one is set in the Plaud app, so the code flow is the one that always works.
+
+The token is a JWT valid for months, and **nothing in this stack refreshes it**. `doctor` prints the expiry date so a task does not discover it halfway through; when it does expire, the cure is another login, exactly as above.
 
 Accounts are per person and each one sees only its own recordings. A teammate's call is not missing, it is simply not in the account this environment is authenticated as.
 
 | Variable | Effect |
 | :-- | :-- |
 | `PLAUD_TOKEN` | Access token, no config file needed |
-| `PLAUD_EMAIL`, `PLAUD_PASSWORD` | Credentials for `login --password` without a prompt |
+| `PLAUD_EMAIL`, `PLAUD_CODE`, `PLAUD_OTP_TOKEN` | The code flow without flags |
+| `PLAUD_PASSWORD` | Password for `login --password`, unattended |
 | `PLAUD_BIN` | Use this binary instead of resolving one |
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
 | `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
