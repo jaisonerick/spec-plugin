@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexaedge v4] - 2026-08-08
+
+### Changed
+- fix: one stable command string, so approving the plugin once is enough
+
+## [Marketplace v47] - 2026-08-08
+
+### Changed
+- fix: one stable command string, so approving the plugin once is enough
+
 ## [Marketplace v46] - 2026-08-07
 
 ### Changed
