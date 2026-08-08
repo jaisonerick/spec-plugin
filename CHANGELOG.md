@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexaedge v5] - 2026-08-08
+
+### Changed
+- fix: create the launcher on update too, for installs that predate it
+
 ## [Plugin: nexaedge v4] - 2026-08-08
 
 ### Changed
