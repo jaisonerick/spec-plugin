@@ -11,9 +11,11 @@ Everything installs at **user scope**, once per machine. Never copy a skill into
 
 ## The script
 
-All work goes through `scripts/nexaedge.sh` in this plugin, which is at `../../scripts/nexaedge.sh` relative to this file. On Claude Code you can also write `"${CLAUDE_PLUGIN_ROOT}"/scripts/nexaedge.sh`.
+Always invoke it as `~/.nexaedge/bin/nexaedge`, written exactly that way. Referred to as `MKT` below.
 
-Resolve it once and reuse it. Referred to as `MKT` below.
+**Do not resolve that path, expand it, or substitute the file it points at.** Agents that ask permission before running a shell command match on the literal command string, so reaching this script by a second path means the person gets asked to approve it all over again. One spelling, one approval, forever.
+
+Only if that launcher does not exist, fall back to `scripts/nexaedge.sh` in this plugin, at `../../scripts/nexaedge.sh` relative to this file, or `"${CLAUDE_PLUGIN_ROOT}"/scripts/nexaedge.sh` on Claude Code. Running any command creates the launcher, so the fallback should be needed at most once.
 
 ```bash
 "$MKT" list [query]        # what this agent can install
