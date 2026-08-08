@@ -357,6 +357,8 @@ cmd_update() {
   FORCE_REFRESH=1
   mkdir -p "$MKT_HOME"
   date +%s > "$STAMP"
+  # Also covers anyone who installed before the launcher existed.
+  [[ -L "$LAUNCHER" ]] || install_launcher >/dev/null
 
   case "$PLATFORM" in
     claude)      claude_update ;;
