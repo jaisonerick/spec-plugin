@@ -127,7 +127,7 @@ jobs:
           [ -n "${MARKETPLACE_VERSION:-}" ] && PARTS="${PARTS:+$PARTS, }marketplace ${MARKETPLACE_VERSION}"
 
           git add \
-            catalog.json index.json \
+            catalog.json index.json index.tsv \
             "plugins/"*"/plugin.json" \
             "plugins/"*"/.claude-plugin/plugin.json" \
             "plugins/"*"/.codex-plugin/plugin.json" \

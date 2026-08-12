@@ -28,6 +28,14 @@ Antigravity also offers `plugins.json`, which registers a whole directory as an 
 
 On Codex and Antigravity nothing is wired: the format for plugin-provided hooks is not confirmed on either, and guessing it would produce a plugin that fails to load. Run `update` when you want it, or call the script from your own shell startup.
 
+## Windows
+
+The script runs in Git Bash, which Claude Code already requires there. Three things differ from a Unix machine, and the script handles each:
+
+- **The agent's command is often absent from the PATH.** The installer writes the user PATH, and every process started before it keeps the old one. The binary is resolved instead: `PATH`, then `CLAUDE_CODE_EXECPATH`, which Claude Code exports as the binary it is running, then `~/.local/bin` and the npm global directory, then every directory the Windows user PATH names. `status` prints what it resolved.
+- **An unprivileged user gets no symlink,** and Git's `ln` copies the directory rather than saying so. The launcher becomes a one-line shim, and an Antigravity link becomes a directory junction, which needs no privilege.
+- **There is no dependable JSON parser.** `python3` there is as likely to be a Store stub that prints nothing as a real interpreter, so the catalog is read as TSV by the shell itself.
+
 ## Configuration
 
 | Variable | Purpose |
@@ -35,6 +43,6 @@ On Codex and Antigravity nothing is wired: the format for plugin-provided hooks 
 | `NEXAEDGE_MKT_PLATFORM` | Force the platform instead of detecting it |
 | `NEXAEDGE_MKT_HOME` | Where the Antigravity clone and cache live (default `~/.nexaedge`) |
 | `NEXAEDGE_MKT_CLONE` | Use a checkout you already have instead of cloning a second copy |
-| `NEXAEDGE_MKT_INDEX` | Use a local `index.json`, for developing the marketplace itself |
+| `NEXAEDGE_MKT_INDEX` | Use a local `index.tsv`, for developing the marketplace itself |
 | `NEXAEDGE_MKT_STALE_HOURS` | Window for `update --if-stale` (default 12) |
 | `ANTIGRAVITY_CONFIG_HOME` | Antigravity global customization root (default `~/.gemini/config`) |

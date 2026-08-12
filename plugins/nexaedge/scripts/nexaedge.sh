@@ -9,7 +9,7 @@ set -euo pipefail
 REPO_SLUG="nexaedge/nexaedge-marketplace"
 REPO_URL="https://github.com/${REPO_SLUG}.git"
 MARKETPLACE_NAME="nexaedge-marketplace"
-CATALOG_URL="https://raw.githubusercontent.com/${REPO_SLUG}/main/index.json"
+CATALOG_URL="https://raw.githubusercontent.com/${REPO_SLUG}/main/index.tsv"
 
 MKT_HOME="${NEXAEDGE_MKT_HOME:-$HOME/.nexaedge}"
 # One stable command string for every future invocation. Agents that gate shell
@@ -20,11 +20,14 @@ LAUNCHER="$MKT_HOME/bin/nexaedge"
 # Point NEXAEDGE_MKT_CLONE at a checkout you already have instead of cloning a
 # second copy. Antigravity reads the plugins from wherever this lands.
 CLONE_DIR="${NEXAEDGE_MKT_CLONE:-$MKT_HOME/marketplace}"
-CATALOG_CACHE="$MKT_HOME/index.json"
+CATALOG_CACHE="$MKT_HOME/index.tsv"
 STAMP="$MKT_HOME/last-update"
 
 AG_CONFIG_DIR="${ANTIGRAVITY_CONFIG_HOME:-$HOME/.gemini/config}"
 AG_PLUGINS_DIR="$AG_CONFIG_DIR/plugins"
+# Antigravity links we made. On Windows the link is a directory junction, which
+# a shell cannot tell apart from a real directory, so ownership is recorded.
+AG_RECORD="$MKT_HOME/antigravity-links"
 
 STALE_HOURS="${NEXAEDGE_MKT_STALE_HOURS:-12}"
 
@@ -33,6 +36,86 @@ STALE_HOURS="${NEXAEDGE_MKT_STALE_HOURS:-12}"
 say()  { printf '%s\n' "$*"; }
 warn() { printf '%s\n' "$*" >&2; }
 die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+
+# A Windows path runs from this shell only once cygpath has made it POSIX.
+posix_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -u "$1" 2>/dev/null || printf '%s\n' "$1"
+  else
+    printf '%s\n' "$1"
+  fi
+}
+
+# Where this file really is, with every symlink resolved. Invoked through the
+# launcher, $BASH_SOURCE is the launcher, and pointing that at itself is a loop.
+resolve_self() {
+  local src="${BASH_SOURCE[0]}" dir
+  while [[ -L "$src" ]]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" == /* ]] || src="$dir/$src"
+  done
+  printf '%s\n' "$(cd -P "$(dirname "$src")" && pwd)/$(basename "$src")"
+}
+
+# ── The agent's own CLI ───────────────────────────────────────────────────────
+#
+# Claude Code and Codex install plugins through their own command, and that
+# command is routinely missing from the PATH an agent hands to a shell: on
+# Windows the installer writes the user PATH, and every process started before
+# it keeps the old one. So the binary gets resolved rather than assumed, and
+# giving up is the last step rather than the first.
+
+runnable() { [[ -n "$1" && -f "$1" && -x "$1" ]]; }
+
+# Every directory the Windows user PATH names, including what an installer added
+# after this process started.
+windows_path_dirs() {
+  command -v powershell.exe >/dev/null 2>&1 || return 0
+  powershell.exe -NoProfile -NonInteractive \
+    -Command "[Environment]::GetEnvironmentVariable('Path','User')" 2>/dev/null |
+    tr -d '\r' | tr ';' '\n'
+}
+
+find_cli() {
+  local name="$1" candidate dir found npm_dir
+  found="$(command -v "$name" 2>/dev/null || true)"
+  runnable "$found" && { printf '%s\n' "$found"; return 0; }
+
+  npm_dir="${APPDATA:+$(posix_path "$APPDATA")/npm}"
+
+  # Claude Code exports the binary it is running as: nothing beats asking the
+  # agent itself where it lives.
+  if [[ "$name" == claude && -n "${CLAUDE_CODE_EXECPATH:-}" ]]; then
+    candidate="$(posix_path "$CLAUDE_CODE_EXECPATH")"
+    for candidate in "$candidate" "$candidate.exe"; do
+      runnable "$candidate" && { printf '%s\n' "$candidate"; return 0; }
+    done
+  fi
+
+  for candidate in \
+    "$HOME/.local/bin/$name" "$HOME/.local/bin/$name.exe" "$HOME/.local/bin/$name.cmd" \
+    "${npm_dir:-$HOME/AppData/Roaming/npm}/$name.cmd" "$HOME/bin/$name" \
+    "/usr/local/bin/$name" "/opt/homebrew/bin/$name"; do
+    runnable "$candidate" && { printf '%s\n' "$candidate"; return 0; }
+  done
+
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
+    dir="$(posix_path "$dir")"
+    for candidate in "$dir/$name.exe" "$dir/$name.cmd" "$dir/$name"; do
+      runnable "$candidate" && { printf '%s\n' "$candidate"; return 0; }
+    done
+  done < <(windows_path_dirs)
+
+  return 1
+}
+
+cli_for() {
+  find_cli "$1" || die "cannot find the '$1' command on this machine. Looked at PATH, \$HOME/.local/bin, the npm global directory and the Windows user PATH. Install $1, or add it to PATH, and run this again."
+}
 
 # ── Platform detection ────────────────────────────────────────────────────────
 
@@ -49,8 +132,8 @@ detect_platform() {
   [[ -n "${ANTIGRAVITY_SESSION_ID:-}${GEMINI_CLI_SESSION_ID:-}" ]] && { say antigravity; return 0; }
 
   local -a found=()
-  command -v claude >/dev/null 2>&1 && found+=(claude)
-  command -v codex  >/dev/null 2>&1 && found+=(codex)
+  find_cli claude >/dev/null 2>&1 && found+=(claude)
+  find_cli codex  >/dev/null 2>&1 && found+=(codex)
   [[ -d "$AG_CONFIG_DIR" ]] && found+=(antigravity)
 
   case ${#found[@]} in
@@ -75,8 +158,12 @@ resolve_platform() {
 # fetched rather than bundled: an installed plugin is a copy frozen at install
 # time, and a stale listing is worse than a slow one. Falls back to the last
 # good copy when offline.
+#
+# It arrives as one tab-separated row per plugin — name, tagline, platforms,
+# keywords, description — because the only interpreter every supported machine
+# has is this shell.
 fetch_catalog() {
-  # Point at a working copy's index.json while developing the marketplace itself.
+  # Point at a working copy's index.tsv while developing the marketplace itself.
   if [[ -n "${NEXAEDGE_MKT_INDEX:-}" ]]; then
     [[ -f "$NEXAEDGE_MKT_INDEX" ]] || die "NEXAEDGE_MKT_INDEX is set but $NEXAEDGE_MKT_INDEX does not exist"
     printf '%s\n' "$NEXAEDGE_MKT_INDEX"; return 0
@@ -106,82 +193,88 @@ fetch_catalog() {
   printf '%s\n' "$CATALOG_CACHE"
 }
 
-# Print "name<TAB>summary<TAB>platforms" for entries matching an optional query.
+lowercase() { printf '%s' "$*" | tr '[:upper:]' '[:lower:]'; }
+
+# Print "name<TAB>tagline<TAB>platforms" for entries matching an optional query.
+# A checkout on Windows can carry CRLF, which would otherwise leave the last cell
+# of every row ending in a carriage return.
 catalog_rows() {
-  local query="${1:-}" platform="${2:-}"
-  python3 - "$(fetch_catalog)" "$query" "$platform" <<'PY'
-import json, sys
-path, query, platform = sys.argv[1], sys.argv[2].lower(), sys.argv[3]
-plugins = json.load(open(path)).get("plugins", [])
-for p in plugins:
-    if platform and platform not in p.get("platforms", []):
-        continue
-    if query:
-        haystack = " ".join([
-            p.get("name", ""), p.get("tagline", ""), p.get("description", ""),
-            " ".join(p.get("keywords", [])),
-        ]).lower()
-        if query not in haystack:
-            continue
-    print("\t".join([p.get("name", ""), p.get("tagline", ""), ",".join(p.get("platforms", []))]))
-PY
+  local query platform file name tagline platforms keywords description
+  query="$(lowercase "${1:-}")"
+  platform="${2:-}"
+  file="$(fetch_catalog)"
+  while IFS=$'\t' read -r name tagline platforms keywords description; do
+    [[ -n "$name" ]] || continue
+    if [[ -n "$platform" ]]; then
+      case ",$platforms," in *",$platform,"*) ;; *) continue ;; esac
+    fi
+    if [[ -n "$query" ]]; then
+      case "$(lowercase "$name $tagline $keywords $description")" in *"$query"*) ;; *) continue ;; esac
+    fi
+    printf '%s\t%s\t%s\n' "$name" "$tagline" "$platforms"
+  done < <(tr -d '\r' < "$file")
 }
 
+# 0 supported, 1 known but not here, 2 not in the catalog. Reads a catalog the
+# caller already fetched: called as a condition, a failure in here would be read
+# as an answer.
 catalog_supports() {
-  local name="$1" platform="$2"
-  python3 - "$(fetch_catalog)" "$name" "$platform" <<'PY'
-import json, sys
-path, name, platform = sys.argv[1:4]
-for p in json.load(open(path)).get("plugins", []):
-    if p.get("name") == name:
-        sys.exit(0 if platform in p.get("platforms", []) else 1)
-sys.exit(2)
-PY
+  local file="$1" name="$2" platform="$3" row_name row_platforms
+  while IFS=$'\t' read -r row_name _ row_platforms _; do
+    [[ "$row_name" == "$name" ]] || continue
+    case ",$row_platforms," in *",$platform,"*) return 0 ;; *) return 1 ;; esac
+  done < <(tr -d '\r' < "$file")
+  return 2
 }
 
 # ── Claude Code ───────────────────────────────────────────────────────────────
 
 claude_ensure_marketplace() {
-  claude plugin marketplace list 2>/dev/null | grep -q "$MARKETPLACE_NAME" && return 0
-  claude plugin marketplace add "$REPO_SLUG"
+  local cli="$1"
+  "$cli" plugin marketplace list 2>/dev/null | grep -q "$MARKETPLACE_NAME" && return 0
+  "$cli" plugin marketplace add "$REPO_SLUG"
 }
 
 claude_install() {
-  claude_ensure_marketplace
-  local p
-  for p in "$@"; do claude plugin install "${p}@${MARKETPLACE_NAME}" --scope user; done
+  local cli p
+  cli="$(cli_for claude)"
+  claude_ensure_marketplace "$cli"
+  for p in "$@"; do "$cli" plugin install "${p}@${MARKETPLACE_NAME}" --scope user; done
   say ""
   say "Installed. Claude Code loads plugins at startup, so run /reload-plugins or restart to use them now."
 }
 
-claude_remove()  { local p; for p in "$@"; do claude plugin uninstall "${p}@${MARKETPLACE_NAME}"; done; }
-claude_status()  { claude plugin list 2>/dev/null | grep "$MARKETPLACE_NAME" || say "no plugins installed from $MARKETPLACE_NAME"; }
+claude_remove()  { local cli p; cli="$(cli_for claude)"; for p in "$@"; do "$cli" plugin uninstall "${p}@${MARKETPLACE_NAME}"; done; }
+claude_status()  { local cli; cli="$(cli_for claude)"; "$cli" plugin list 2>/dev/null | grep "$MARKETPLACE_NAME" || say "no plugins installed from $MARKETPLACE_NAME"; }
 claude_update()  {
-  claude plugin marketplace update "$MARKETPLACE_NAME"
-  local p
-  for p in $(claude plugin list 2>/dev/null | grep -o "[^ ]*@${MARKETPLACE_NAME}" | sed "s/@${MARKETPLACE_NAME}//"); do
-    claude plugin update "${p}@${MARKETPLACE_NAME}" || true
+  local cli p
+  cli="$(cli_for claude)"
+  "$cli" plugin marketplace update "$MARKETPLACE_NAME"
+  for p in $("$cli" plugin list 2>/dev/null | grep -o "[^ ]*@${MARKETPLACE_NAME}" | sed "s/@${MARKETPLACE_NAME}//"); do
+    "$cli" plugin update "${p}@${MARKETPLACE_NAME}" || true
   done
 }
 
 # ── Codex ─────────────────────────────────────────────────────────────────────
 
 codex_ensure_marketplace() {
-  codex plugin marketplace list 2>/dev/null | grep -q "$MARKETPLACE_NAME" && return 0
-  codex plugin marketplace add "$REPO_SLUG" --ref main
+  local cli="$1"
+  "$cli" plugin marketplace list 2>/dev/null | grep -q "$MARKETPLACE_NAME" && return 0
+  "$cli" plugin marketplace add "$REPO_SLUG" --ref main
 }
 
 codex_install() {
-  codex_ensure_marketplace
-  local p
-  for p in "$@"; do codex plugin add "${p}@${MARKETPLACE_NAME}"; done
+  local cli p
+  cli="$(cli_for codex)"
+  codex_ensure_marketplace "$cli"
+  for p in "$@"; do "$cli" plugin add "${p}@${MARKETPLACE_NAME}"; done
   say ""
   say "Installed. Start a new Codex thread to pick them up."
 }
 
-codex_remove()  { local p; for p in "$@"; do codex plugin remove "${p}@${MARKETPLACE_NAME}"; done; }
-codex_status()  { codex plugin list 2>/dev/null | grep "$MARKETPLACE_NAME" || say "no plugins installed from $MARKETPLACE_NAME"; }
-codex_update()  { codex plugin marketplace upgrade; }
+codex_remove()  { local cli p; cli="$(cli_for codex)"; for p in "$@"; do "$cli" plugin remove "${p}@${MARKETPLACE_NAME}"; done; }
+codex_status()  { local cli; cli="$(cli_for codex)"; "$cli" plugin list 2>/dev/null | grep "$MARKETPLACE_NAME" || say "no plugins installed from $MARKETPLACE_NAME"; }
+codex_update()  { local cli; cli="$(cli_for codex)"; "$cli" plugin marketplace upgrade; }
 
 # ── Antigravity ───────────────────────────────────────────────────────────────
 #
@@ -218,10 +311,35 @@ ag_ensure_clone() {
 
 ag_link() { printf '%s\n' "$AG_PLUGINS_DIR/$1"; }
 
+ag_record()  { mkdir -p "$(dirname "$AG_RECORD")"; grep -qxF "$1" "$AG_RECORD" 2>/dev/null || printf '%s\n' "$1" >> "$AG_RECORD"; }
+ag_forget()  { [[ -f "$AG_RECORD" ]] || return 0; grep -vxF "$1" "$AG_RECORD" > "$AG_RECORD.tmp" || true; mv "$AG_RECORD.tmp" "$AG_RECORD"; }
+
 # Only ever remove our own links, never a directory someone put there by hand.
 ag_is_ours() {
   local link="$1"
-  [[ -L "$link" ]] && [[ "$(readlink "$link")" == "$CLONE_DIR"/* ]]
+  [[ -L "$link" && "$(readlink "$link")" == "$CLONE_DIR"/* ]] && return 0
+  grep -qxF "$(basename "$link")" "$AG_RECORD" 2>/dev/null
+}
+
+# Windows gives an unprivileged user no symlink, and its `ln` copies the
+# directory instead of saying so. A junction needs no privilege and Antigravity
+# follows it the same way.
+ag_make_link() {
+  local target="$1" link="$2"
+  ln -sfn "$target" "$link" 2>/dev/null && [[ -L "$link" ]] && return 0
+  rm -rf "$link"
+  command -v cygpath >/dev/null 2>&1 || return 1
+  cmd //c mklink //J "$(cygpath -w "$link")" "$(cygpath -w "$target")" >/dev/null 2>&1
+}
+
+ag_unlink() {
+  local link="$1"
+  [[ -L "$link" ]] && { rm -f "$link"; return 0; }
+  # A junction goes with rmdir, which unlinks it without following it.
+  if [[ -d "$link" ]] && command -v cygpath >/dev/null 2>&1; then
+    cmd //c rmdir "$(cygpath -w "$link")" >/dev/null 2>&1 && return 0
+  fi
+  rm -f "$link"
 }
 
 ag_install() {
@@ -233,10 +351,11 @@ ag_install() {
     target="$CLONE_DIR/plugins/$name"
     [[ -d "$target" ]] || die "$target does not exist in the clone"
     link="$(ag_link "$name")"
-    if [[ -e "$link" && ! -L "$link" ]]; then
-      die "$link already exists and is not a symlink. Move it aside first."
+    if [[ -e "$link" ]] && ! ag_is_ours "$link"; then
+      die "$link already exists and is not one of ours. Move it aside first."
     fi
-    ln -sfn "$target" "$link"
+    ag_make_link "$target" "$link" || die "could not link $target into $AG_PLUGINS_DIR"
+    ag_record "$name"
   done
 
   say ""
@@ -249,7 +368,8 @@ ag_remove() {
   for name in "$@"; do
     link="$(ag_link "$name")"
     if ag_is_ours "$link"; then
-      rm -f "$link"
+      ag_unlink "$link"
+      ag_forget "$name"
     elif [[ -e "$link" ]]; then
       warn "note: $link is not one of ours, leaving it alone"
     fi
@@ -258,13 +378,13 @@ ag_remove() {
 
 ag_status() {
   [[ -d "$AG_PLUGINS_DIR" ]] || { say "nothing installed under $AG_PLUGINS_DIR"; return 0; }
-  local link found=0
+  local link listed=0
   for link in "$AG_PLUGINS_DIR"/*; do
     ag_is_ours "$link" || continue
     say "$(basename "$link")"
-    found=1
+    listed=1
   done
-  [[ $found -eq 1 ]] || say "no plugins installed from $MARKETPLACE_NAME"
+  [[ $listed -eq 1 ]] || say "no plugins installed from $MARKETPLACE_NAME"
 }
 
 ag_update() { ag_ensure_clone; }
@@ -285,10 +405,11 @@ cmd_install() {
   [[ $# -gt 0 ]] || die "install needs at least one plugin name (see: nexaedge.sh list)"
   resolve_platform
 
-  local p rc
+  local catalog p rc
+  catalog="$(fetch_catalog)"
   for p in "$@"; do
     rc=0
-    catalog_supports "$p" "$PLATFORM" || rc=$?
+    catalog_supports "$catalog" "$p" "$PLATFORM" || rc=$?
     case $rc in
       0) ;;
       1) die "'$p' does not run on $PLATFORM (see: nexaedge.sh list)" ;;
@@ -307,11 +428,25 @@ cmd_install() {
 }
 
 # Put the stable command string in place, pointing at wherever this copy lives.
+# An agent updates its plugin into a new directory, so this is re-pointed on
+# every install and every update rather than only when it is missing.
 install_launcher() {
   local self
-  self="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+  self="$(resolve_self)"
+  # Running as the launcher itself, there is nothing else to point at.
+  [[ "$self" == "$LAUNCHER" ]] && return 0
+
   mkdir -p "$(dirname "$LAUNCHER")"
-  ln -sfn "$self" "$LAUNCHER"
+  if ! ln -sfn "$self" "$LAUNCHER" 2>/dev/null || [[ ! -L "$LAUNCHER" ]]; then
+    # Windows has no symlink here, and its `ln` copies instead of saying so. A
+    # copy would go stale the next time the plugin updates, so what lands is a
+    # shim pointing at wherever this copy lives now.
+    rm -rf "$LAUNCHER"
+    printf '#!/usr/bin/env bash\nexec "%s" "$@"\n' "$self" > "$LAUNCHER.tmp"
+    chmod +x "$LAUNCHER.tmp"
+    mv -f "$LAUNCHER.tmp" "$LAUNCHER"
+  fi
+
   say ""
   say "Future work goes through a single command:"
   say "  $LAUNCHER"
@@ -330,7 +465,11 @@ cmd_remove() {
 
 cmd_status() {
   resolve_platform
+  local cli
   say "platform: $PLATFORM"
+  case "$PLATFORM" in
+    claude|codex) cli="$(cli_for "$PLATFORM")"; say "command:  $cli" ;;
+  esac
   say ""
   case "$PLATFORM" in
     claude)      claude_status ;;
@@ -346,6 +485,11 @@ cmd_update() {
   local if_stale=0
   [[ "${1:-}" == "--if-stale" ]] && if_stale=1
 
+  # An agent updates a plugin into a new directory and drops the old one, so the
+  # launcher is re-pointed at this copy first, stale or not. Wired into session
+  # start, this repairs it one session after any update.
+  install_launcher >/dev/null
+
   if [[ $if_stale -eq 1 && -f "$STAMP" ]]; then
     local last now
     last="$(cat "$STAMP" 2>/dev/null || echo 0)"
@@ -357,8 +501,6 @@ cmd_update() {
   FORCE_REFRESH=1
   mkdir -p "$MKT_HOME"
   date +%s > "$STAMP"
-  # Also covers anyone who installed before the launcher existed.
-  [[ -L "$LAUNCHER" ]] || install_launcher >/dev/null
 
   case "$PLATFORM" in
     claude)      claude_update ;;

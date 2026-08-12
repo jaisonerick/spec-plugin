@@ -94,7 +94,8 @@ catalog.json                    marketplace identity + {name, source} per plugin
 .claude-plugin/plugin.json                   Claude manifest
 .agents/plugins/marketplace.json             Codex catalog
 .codex-plugin/plugin.json                    Codex manifest
-index.json                                   runtime listing the nexaedge plugin fetches
+index.json                                   runtime listing, as JSON
+index.tsv                                    the same listing, and what the nexaedge plugin fetches
 ```
 
 CI regenerates after every version bump. Editing a generated file works until the next push, then silently reverts.

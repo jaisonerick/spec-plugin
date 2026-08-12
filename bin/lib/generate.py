@@ -20,6 +20,7 @@ Written per run:
     plugins/<name>/.claude-plugin/plugin.json    Claude manifest
     plugins/<name>/.codex-plugin/plugin.json     Codex manifest
     index.json                                   runtime listing for the marketplace plugin
+    index.tsv                                    the same listing, readable without a JSON parser
 
 Antigravity reads `plugins/<name>/plugin.json` directly, so the standard
 manifest serves as its manifest too and nothing is generated for it.
@@ -40,14 +41,17 @@ SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 WRITTEN: list[str] = []
 
 
-def write_json(path: Path, data: dict) -> None:
+def write(path: Path, body: str) -> None:
     """Write only when the content changed, so reruns are quiet and CI diffs stay honest."""
-    body = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
     if path.exists() and path.read_text() == body:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body)
     WRITTEN.append(str(path.relative_to(ROOT)))
+
+
+def write_json(path: Path, data: dict) -> None:
+    write(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
 
 
 def to_semver(version: str) -> str:
@@ -181,12 +185,32 @@ def emit_codex(market: dict, records: list[dict]) -> None:
 
 # ── Runtime index ─────────────────────────────────────────────────────────────
 
+def index_row(record: dict) -> str:
+    """One plugin as tab-separated cells: name, tagline, platforms, keywords, description."""
+    listing = record["listing"]
+    manifest = record["manifest"]
+    cells = [
+        record["name"],
+        listing.get("tagline", ""),
+        ",".join(listing.get("platforms", [])),
+        " ".join((manifest or listing).get("keywords", [])),
+        manifest["description"] if manifest else listing.get("tagline", ""),
+    ]
+    return "\t".join(" ".join(cell.split()) for cell in cells)
+
+
 def emit_index(market: dict, records: list[dict]) -> None:
     """The marketplace plugin fetches one file to answer "what can I install?".
 
     It cannot read eight manifests over the network, and an installed plugin is a
     copy frozen at install time, so the listing has to be fetchable and current.
+
+    The TSV is what the plugin actually reads: on Windows the shell it runs in
+    has no dependable JSON parser, and `python3` there is as likely to be a Store
+    stub that prints nothing as a real interpreter.
     """
+    write(ROOT / "index.tsv", "".join(index_row(r) + "\n" for r in records))
+
     write_json(ROOT / "index.json", {
         "marketplace": {"name": market["name"], "displayName": market["displayName"]},
         "plugins": [

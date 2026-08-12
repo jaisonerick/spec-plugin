@@ -68,7 +68,7 @@ bin/mkt add <url>     # vendor a skill or reference a plugin
 bin/mkt update        # check vendored skills for upstream updates
 ```
 
-The generator refuses to run on an inconsistent catalog, so `bin/mkt generate` doubles as the check. The `nexaedge` plugin also fetches `index.json` at runtime to list what is available, which means a wrong entry is user-visible.
+The generator refuses to run on an inconsistent catalog, so `bin/mkt generate` doubles as the check. The `nexaedge` plugin also fetches `index.tsv` at runtime to list what is available, which means a wrong entry is user-visible.
 
 Validate before pushing:
 
