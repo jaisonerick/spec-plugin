@@ -48,6 +48,23 @@ posix_path() {
   fi
 }
 
+# Anything that is not a plain number counts as ancient. Every caller feeds this
+# into arithmetic, where an empty or garbled value is a fatal error rather than a
+# wrong answer, and being wrong here only costs one refresh.
+seconds_or_zero() {
+  case "${1:-}" in
+    ''|*[!0-9]*) printf '0\n' ;;
+    *)           printf '%s\n' "$1" ;;
+  esac
+}
+
+# GNU stat first: it takes `-f` as "file system", answers with a block dump on
+# stdout before failing, and that dump would ride along with whatever the next
+# attempt prints. BSD stat rejects `-c` outright and prints nothing.
+file_mtime() {
+  seconds_or_zero "$(stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null || true)"
+}
+
 # Where this file really is, with every symlink resolved. Invoked through the
 # launcher, $BASH_SOURCE is the launcher, and pointing that at itself is a loop.
 resolve_self() {
@@ -176,7 +193,7 @@ fetch_catalog() {
     local age_limit=$(( STALE_HOURS * 3600 ))
     local now cached
     now="$(date +%s)"
-    cached="$(stat -f %m "$CATALOG_CACHE" 2>/dev/null || stat -c %Y "$CATALOG_CACHE" 2>/dev/null || echo 0)"
+    cached="$(file_mtime "$CATALOG_CACHE")"
     if (( now - cached < age_limit )); then
       printf '%s\n' "$CATALOG_CACHE"; return 0
     fi
@@ -492,7 +509,7 @@ cmd_update() {
 
   if [[ $if_stale -eq 1 && -f "$STAMP" ]]; then
     local last now
-    last="$(cat "$STAMP" 2>/dev/null || echo 0)"
+    last="$(seconds_or_zero "$(cat "$STAMP" 2>/dev/null || true)")"
     now="$(date +%s)"
     (( now - last < STALE_HOURS * 3600 )) && return 0
   fi
