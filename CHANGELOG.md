@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: artifact-publish v4] - 2026-08-12
+
+### Changed
+- fix: a published artifact can load external resources, and the docs said it could not
+
 ## [Plugin: nexaedge v7] - 2026-08-12
 
 ### Changed

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "artifact-publish",
-  "version": "v3",
+  "version": "v4",
   "description": "Publish a self-contained HTML file as a shareable artifact on artifacts.nexaedge.com. Sign in with any Google Workspace account: the artifact belongs to that account's domain, and only that domain can open it. Also issues expiring links for people outside the domain.",
   "author": {
     "name": "Jaison Erick",
