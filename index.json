@@ -218,6 +218,23 @@
         "diagnostics"
       ],
       "requires": "LSP server support, which only Claude Code exposes to plugins"
+    },
+    {
+      "name": "miro-board",
+      "tagline": "Read and interpret a Miro board through your own browser session",
+      "description": "Read any Miro board you can open in your browser, then work out what it says. Miro's public API cannot reach a board you were invited to in someone else's team, and the canvas is WebAssembly so there is nothing in the page to scrape; this reads the board through your own signed-in session instead, opening Chrome once and then talking to Miro's realtime gateway directly. Extraction and interpretation are kept apart on purpose: the scripts measure geometry, colour, containment and edge alignment and never conclude anything, offering overlapping candidate groupings with the evidence behind each, because what a board means lives in how it was arranged and only reading the text can settle it.",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "keywords": [
+        "miro",
+        "whiteboard",
+        "board",
+        "diagram",
+        "extraction"
+      ]
     }
   ]
 }

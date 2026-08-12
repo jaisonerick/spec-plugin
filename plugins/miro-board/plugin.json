@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "miro-board",
+  "version": "v1",
+  "description": "Read any Miro board you can open in your browser, then work out what it says. Miro's public API cannot reach a board you were invited to in someone else's team, and the canvas is WebAssembly so there is nothing in the page to scrape; this reads the board through your own signed-in session instead, opening Chrome once and then talking to Miro's realtime gateway directly. Extraction and interpretation are kept apart on purpose: the scripts measure geometry, colour, containment and edge alignment and never conclude anything, offering overlapping candidate groupings with the evidence behind each, because what a board means lives in how it was arranged and only reading the text can settle it.",
+  "author": {
+    "name": "Jaison Erick",
+    "email": "jaison@jaisonerick.com",
+    "url": "https://github.com/jaisonerick"
+  },
+  "homepage": "https://github.com/nexaedge/nexaedge-marketplace",
+  "repository": "https://github.com/nexaedge/nexaedge-marketplace",
+  "keywords": [
+    "miro",
+    "whiteboard",
+    "board",
+    "diagram",
+    "extraction"
+  ],
+  "extensions": {
+    "com.nexaedge.marketplace": {
+      "displayName": "Miro Board",
+      "tagline": "Read and interpret a Miro board through your own browser session",
+      "category": "Productivity",
+      "platforms": [
+        "claude",
+        "codex",
+        "antigravity"
+      ],
+      "prompts": [
+        "What is on this Miro board? https://miro.com/app/board/<id>/",
+        "Pull the flow from this board into text"
+      ]
+    }
+  }
+}

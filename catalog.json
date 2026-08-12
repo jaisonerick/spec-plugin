@@ -191,6 +191,12 @@
           "diagnostics"
         ]
       }
+    },
+    {
+      "name": "miro-board",
+      "source": {
+        "kind": "local"
+      }
     }
   ]
 }

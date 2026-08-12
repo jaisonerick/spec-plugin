@@ -87,6 +87,10 @@
         "url": "https://github.com/anthropics/claude-plugins-official.git",
         "path": "plugins/rust-analyzer-lsp"
       }
+    },
+    {
+      "name": "miro-board",
+      "source": "./plugins/miro-board"
     }
   ]
 }
