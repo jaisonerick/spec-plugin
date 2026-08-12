@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexaedge v6] - 2026-08-12
+
+### Changed
+- fix: install on a machine where the agent's own CLI is not on the PATH
+
+## [Marketplace v48] - 2026-08-12
+
+### Changed
+- fix: install on a machine where the agent's own CLI is not on the PATH
+
 ## [Plugin: nexaedge v5] - 2026-08-08
 
 ### Changed
