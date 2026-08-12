@@ -55,6 +55,8 @@ Each file is capped at 100 MB.
 
 ## Writing the HTML
 
-Self-contained: CSS, JS and data inside the file. The service serves documents from an isolated origin (`sandbox allow-scripts`, no `allow-same-origin`), so the document's own JavaScript runs — charts, filters, sorting — while nothing external loads. CDN scripts, remote fonts and images by URL will not appear; embed images as data URIs.
+Prefer self-contained: CSS, JS and data inside the file, images as data URIs. External resources do load — CDN scripts, remote fonts, images by URL, cross-origin `fetch` all work — so this is a recommendation and not a limit the service imposes. An artifact is a frozen copy meant to open weeks after the link went out, and a CDN that moves takes the page with it, a network that blocks the host renders it wrong, and every open tells whoever serves the asset who is reading.
+
+The isolated origin (`sandbox allow-scripts`, no `allow-same-origin`) is what keeps a published document away from this service's own origin and session. Its cost is anything tied to an origin: `localStorage`, `sessionStorage` and cookies are unavailable, so a page cannot remember state between visits. The document's own JavaScript runs normally — charts, filters, sorting, canvas, blob downloads.
 
 Give it a real `<title>`. It becomes the name in the listing and in the browser tab, so `index` or `report` makes the artifact unfindable later. Whoever published can fix it afterwards by clicking the title in the top bar.

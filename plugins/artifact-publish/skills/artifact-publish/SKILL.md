@@ -49,7 +49,9 @@ Wrong title after publishing: open the link, click the title in the top bar, edi
 
 ## Before publishing
 
-The HTML has to be **self-contained**: CSS, JS and data inside the file. The service serves the document from an isolated origin (`sandbox allow-scripts`), so its own JavaScript runs but nothing external loads — CDN, remote font and image-by-URL all vanish. Images go in as data URIs.
+Prefer **self-contained**: CSS, JS and data inside the file, images as data URIs. External resources do load — a CDN script, a webfont, an image by URL, a cross-origin `fetch` — so this is a recommendation, not a limit the service imposes. An artifact is a frozen copy that has to open weeks after the link went out, and a CDN that moves takes the page with it, a network that blocks the host renders it wrong, and every open tells whoever serves the asset who is reading.
+
+What the isolated origin (`sandbox allow-scripts`, no `allow-same-origin`) does cost is anything tied to an origin: **`localStorage`, `sessionStorage` and cookies are unavailable**, so a page cannot remember anything between visits. The document's own JavaScript runs normally, canvas and blob downloads included.
 
 Publishing again with the same path overwrites it, and the link stays the same.
 
