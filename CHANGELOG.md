@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: nexaedge v7] - 2026-08-12
+
+### Changed
+- fix: read a file's mtime the same way on GNU and BSD
+
 ## [Plugin: nexaedge v6] - 2026-08-12
 
 ### Changed

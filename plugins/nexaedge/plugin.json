@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "nexaedge",
-  "version": "v6",
+  "version": "v7",
   "description": "Front end for the nexaedge marketplace that works the same on Claude Code, Codex and Antigravity. Detects which agent is running, translates to that agent's native install path, and keeps everything at user scope so a plugin is installed once per machine rather than copied into each repository.",
   "author": {
     "name": "Jaison Erick",
