@@ -18,13 +18,14 @@ What a fresh environment still needs is an authenticated account:
 | Variable | Effect |
 | :-- | :-- |
 | `PLAUD_EMAIL`, `PLAUD_PASSWORD` | Credentials for `plaud login --password`, so a machine can be set up in one step with no prompt. |
+| `PLAUD_WHISPER_URL` | Point at a different transcription service. |
 | `PLAUD_TOKEN` | Access token, standing in for `~/.config/plaud/token.json` entirely. Nothing is written to disk, which suits an ephemeral container. |
 | `PLAUD_BIN` | Use this binary instead of resolving one. |
 | `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
 
 **The assistant signs the user in, and never asks for a password.** When the account is not authenticated, the skill runs the login as a conversation: it asks for the email, sends a one-time code, asks for the six digits that arrived in the inbox, and stores the token. A code expires in minutes and works once, which is what makes it safe to say out loud; a password is neither. Nothing in that flow needs a browser, an open port or a visible terminal, so it behaves the same in a terminal, a desktop app, a phone or a sandbox.
 
-Transcription is a second sign-in, to the service that does it: `plaud auth login`, with a Google account on one of the domains that service serves. That one **does** open a browser and wait on a local port, so it is the single step the assistant cannot do for the user — once per machine, after which the session refreshes itself. `doctor` reports the two on separate lines, because being signed in to one and not the other fails in the middle of a task rather than at its start.
+Transcription is a second sign-in, to the service that does it: `plaud auth login`, with a Google account on one of the domains that service serves. It asks nothing of the machine either — a short code and a URL the person opens on any device, so the assistant conducts this one too. `doctor` reports the two on separate lines, because being signed in to one and not the other fails in the middle of a task rather than at its start.
 
 The two halves are callable separately, which is what makes it drivable by something that is not the account owner:
 

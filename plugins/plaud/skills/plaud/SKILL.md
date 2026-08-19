@@ -201,13 +201,27 @@ Transcription runs on a service shared by everyone at the domains it serves, and
 
 ```bash
 plaud auth status      # who is signed in, and whether it still works
-plaud auth login       # sign in
 plaud auth logout      # forget it
 ```
 
-**This is the one step in this skill you cannot do for the user.** `auth login` opens a browser and waits on a local port, so it needs somebody at the machine. Say so plainly and ask them to run it once; the session is then kept and refreshed by itself, and everything after it is yours again.
+**Conduct this login too, in the conversation.** It asks nothing of the machine — no browser, no port, no visible terminal — so it works the same over ssh, in a container, or on a phone.
 
-An account outside the served domains is refused by name, saying which domains those are — which is a wrong-account answer, not a broken-setup one, and the cure is `plaud auth logout` and signing in as the right one.
+Start it in the background and read the first line it prints:
+
+```bash
+plaud auth login --json > /tmp/plaud-login.json 2>&1 &
+```
+
+The first line arrives immediately and carries `user_code` and `verification_url`. **Show both to the user and ask them to enter the code**, then watch the same file: the command is still running, and writes a second line when the sign-in lands.
+
+```json
+{"status":"pending","user_code":"QPB-QYM-SFSJ","verification_url":"https://www.google.com/device","expires_in":1800}
+{"status":"signed-in","email":"someone@nexaedge.com","served":true}
+```
+
+`signed-in` with `served: true` means done; carry on with what they originally asked for. `served: false` means the account is outside the domains this service serves, and the cure is another sign-in as the right one. `failed` carries the reason, and an expired code just needs the command run again.
+
+An account outside those domains is refused by name later too, saying which domains they are — a wrong-account answer, not a broken-setup one.
 
 The two sign-ins are independent. A machine can read recordings and be unable to transcribe them, or the reverse; `doctor` is what tells the two apart.
 
