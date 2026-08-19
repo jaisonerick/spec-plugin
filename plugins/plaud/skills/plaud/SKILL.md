@@ -158,17 +158,13 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 ## Windows
 
-The binary is not code-signed, so Windows may refuse to run it and say the publisher is unknown. It is the same binary the checksum in the release matched; what Windows objects to is the absence of a signature, not the contents.
+The binary carries no code signature, and two different Windows features object to that. They look alike and are not, so read which one the message names before advising anything.
 
-The installer clears the download tag it writes, so the copy it puts in place normally runs. A copy fetched by hand from the releases page carries that tag and does not:
+**SmartScreen** says the publisher is unknown and offers **More info → Run anyway**. It objects to the tag Windows puts on a download; the installer clears that tag on the copy it places, so this normally only appears for a copy fetched by hand, which `Unblock-File <path>` settles.
 
-```powershell
-Unblock-File <path-to-plaud.exe>
-```
+**Smart App Control** just refuses. There is no *Run anyway*, no per-app exception, and `Unblock-File` does nothing, because it is not about the tag: SAC declines to run anything unsigned. The only way through is to turn it off, in **Windows Security → App & browser control → Smart App Control**. On a Windows kept up to date it can be turned back on afterwards; older builds could not, and needed a clean install, so check that before advising it and say which it is.
 
-If SmartScreen still refuses — it also judges by how many people have run a given binary, and a fresh release has been run by nobody — the way through is **More info → Run anyway**, once per release. Tell the user that is what they are agreeing to: an unsigned binary from a repository they already trust, not a verdict about the contents.
-
-Do not advise turning SmartScreen or Defender off.
+Turning SAC off is a real reduction in that machine's protection, and it is the user's call, not yours. Say what it costs and let them decide. Never suggest disabling SmartScreen or Defender, which is a different and worse trade.
 
 ## Signing the user in
 

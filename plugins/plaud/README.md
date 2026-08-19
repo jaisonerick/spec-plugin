@@ -13,7 +13,7 @@ It stops at the transcript. Turning it into a note, naming the file, choosing wh
 
 Python 3 is the only thing that has to be installed. The Plaud client is a single Go binary, and if one is not already on PATH the plugin fetches the pinned release of [`plaud-cli`](https://github.com/jaisonerick/plaud-cli) into `~/.local/share/plaud-cli/bin` on first use, matched to the platform and verified against the release's sha256. No sudo, no PATH changes, and nothing written inside the plugin directory, which is replaced on every update.
 
-That binary is not code-signed, so Windows may refuse it and name the publisher as unknown. The installer clears the download tag on the copy it places; a copy fetched by hand needs `Unblock-File`, and a release nobody has run yet may still need **More info → Run anyway** once.
+That binary is not code-signed. SmartScreen reacts by naming the publisher as unknown and offering *Run anyway*; the installer clears the download tag it objects to, so that normally only appears for a copy fetched by hand. **Smart App Control** is stricter and simply refuses: no *Run anyway*, no per-app exception, and the only way through is turning it off in Windows Security, which recent Windows lets you turn back on.
 
 What a fresh environment still needs is an authenticated account:
 
