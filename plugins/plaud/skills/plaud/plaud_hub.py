@@ -228,7 +228,26 @@ def install_cli():
         f.write(payload)
     os.chmod(tmp, 0o755)
     os.replace(tmp, target)
+    _unblock(target)
     return target
+
+
+def _unblock(path):
+    """Clear the tag Windows puts on a downloaded file.
+
+    SmartScreen refuses a tagged binary that carries no signature, and this one
+    carries none. Writing the file from here should never set the tag — that is
+    a browser's doing — but a copy fetched by hand does, and it ends up in the
+    same place under the same name.
+    """
+    if platform.system() != "Windows":
+        return
+    try:
+        os.remove(path + ":Zone.Identifier")
+    except OSError:
+        # Absent is the normal case, and a filesystem with no alternate data
+        # streams cannot carry the tag in the first place.
+        pass
 
 
 def _token_expiry():
@@ -389,6 +408,11 @@ def cmd_doctor(repo, _args):
         f"  plaud auth  {'ok, from ' + source if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
         f"  service     {_service_auth()}",
     ]
+    if platform.system() == "Windows" and auth.returncode != 0 and not auth.stdout.strip():
+        # A refusal with nothing on stdout is what a blocked binary looks like
+        # from here: the process never ran, so it said nothing.
+        lines.append("  windows     if this says the publisher is unknown, see 'Windows' in SKILL.md")
+
     expiry = _token_expiry()
     if expiry:
         left = expiry - datetime.now(tz=timezone.utc)

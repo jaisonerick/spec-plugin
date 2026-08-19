@@ -156,6 +156,20 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 **The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to reach the transcription service, `doctor` says so rather than failing obscurely halfway through a recording.
 
+## Windows
+
+The binary is not code-signed, so Windows may refuse to run it and say the publisher is unknown. It is the same binary the checksum in the release matched; what Windows objects to is the absence of a signature, not the contents.
+
+The installer clears the download tag it writes, so the copy it puts in place normally runs. A copy fetched by hand from the releases page carries that tag and does not:
+
+```powershell
+Unblock-File <path-to-plaud.exe>
+```
+
+If SmartScreen still refuses — it also judges by how many people have run a given binary, and a fresh release has been run by nobody — the way through is **More info → Run anyway**, once per release. Tell the user that is what they are agreeing to: an unsigned binary from a repository they already trust, not a verdict about the contents.
+
+Do not advise turning SmartScreen or Defender off.
+
 ## Signing the user in
 
 Two accounts, and `doctor` reports them on separate lines because being signed in to one and not the other fails in the middle of a task rather than at the start.
