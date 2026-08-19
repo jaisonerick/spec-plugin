@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v9] - 2026-08-19
+
+### Changed
+- plaud: Smart App Control is not SmartScreen, and the advice differed
+
 ## [Plugin: plaud v8] - 2026-08-19
 
 ### Changed
