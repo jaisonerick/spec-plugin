@@ -18,7 +18,9 @@ It stops at the transcript. Turning it into a note, filing it, naming the file, 
 
 **Python 3 is the only thing that has to be there.** The Plaud client is a single Go binary, and if one is not already on PATH the engine installs the pinned release into the user's data directory on first use: no sudo, no PATH changes, nothing written inside the plugin. That needs network on the first run, and an account that is signed in.
 
-**Signing in is your job, not the user's** (see *Signing the user in*). Assume the person you are working for will never run a command: when the account is not authenticated, walk them through it in the conversation, asking for an emailed code and never for a password.
+**There are two sign-ins, and they answer different questions** (see *Signing the user in*). The Plaud account says which recordings can be read; a Google account says whether anything can be transcribed, because transcription runs on a service shared between the domains it serves. Being signed in to one and not the other is the confusing half-state `doctor` names explicitly.
+
+**Signing in is your job, not the user's.** Assume the person you are working for will never run a command: walk them through it in the conversation, asking for an emailed code and never for a password.
 
 ```bash
 HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
@@ -30,7 +32,7 @@ HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
 python3 "$HUB" doctor
 ```
 
-One report covering the CLI, whether it can activate transcription, whether the account is authenticated, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem. `NOT AUTHENTICATED` sends you to *Signing the user in*, which is a two-minute conversation, not a blocker to hand back.
+One report covering the CLI, both sign-ins, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem. `NOT AUTHENTICATED` on the Plaud line and `NOT SIGNED IN` on the service line both send you to *Signing the user in*, and neither is a blocker to hand back.
 
 ```bash
 python3 "$HUB" config
@@ -61,14 +63,30 @@ When several could be the one, show the candidates with date and duration and le
 ```bash
 python3 "$HUB" fetch <id> --to comms/2026-08-06-reuniao-x/transcript.md
 python3 "$HUB" fetch <id>                       # into the configured directory, slug-named
-python3 "$HUB" fetch <id> --generate            # transcribe first if there is no transcript yet
 ```
 
 `--to` ending in `.md` is the transcript's file; anything else is a directory, and the summary lands beside it (`--summary-to` puts it somewhere specific).
 
-**Transcription is not automatic and it consumes the account's quota.** A recording with no transcript makes `fetch` stop and say so; `--generate` transcribes and waits, and only pass it when the user asked for that recording specifically. Language auto-detects, speakers are separated by default, and a summary is always produced along with the transcript because Plaud's remote trigger has no transcript-only mode.
+**A recording without a transcript is transcribed on the way.** Plaud itself no longer makes transcripts for these accounts, so `fetch` sends the audio to the Whisper service and brings the text back. That takes minutes rather than seconds, and it wakes a GPU that somebody pays for — so it is worth doing on a recording somebody asked for, and worth thinking about before doing it to a hundred.
+
+Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
 
 Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
+
+## Who is speaking
+
+Transcripts come back with the voices the service recognises already named, as `First Last (Company)`. A voice it has never heard stays `SPEAKER_01`, and naming it is what teaches it:
+
+```bash
+plaud speaker list                       # everyone it knows
+plaud speaker name <recording-id> SPEAKER_01 "Jaison Erick" --company NexaEdge
+```
+
+The recording id is the one `plaud list` shows; nothing about the voices is kept on this machine, so naming one needs no file and no audio.
+
+People are shared by everyone using the service, which is why a first name alone is refused: "Amanda" names whichever Amanda the person typing meant. A surname nobody knows is a different thing and takes `--surname-unknown`, after which the company does the identifying.
+
+**Ask, do not infer.** Working out from context that SPEAKER_01 is probably the person whose meeting it was is exactly the guess that puts a wrong name on a voice for every other user. If nobody in the conversation knows, leave it.
 
 ## Handing off
 
@@ -98,13 +116,15 @@ python3 "$HUB" query "SELECT id, recorded_at, duration_min, filename FROM unfile
 python3 "$HUB" query "SELECT * FROM recordings WHERE project = 'acme'" --json
 ```
 
-Activating transcription in bulk is the one place worth being careful, because every recording costs quota. Filter to what is worth transcribing, and confirm the batch with the user first:
+Transcribing in bulk is the one place worth being careful, because each recording is a download and a GPU pass. Filter to what is worth transcribing, and confirm the batch with the user first:
 
 ```bash
-plaud generate $(python3 "$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header)
+for id in $(python3 "$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header); do
+  python3 "$HUB" pull "$id"
+done
 ```
 
-After activating, `refresh && build` flips those recordings from `pending` to `transcribed`.
+`pending` here means Plaud holds no transcript, which is now the normal state rather than a problem: pulling one transcribes it.
 
 Commit `catalog.jsonl` and whatever was pulled; the sqlite index is rebuildable and stays out of git.
 
@@ -134,9 +154,13 @@ At the repository root. Every key is optional; the file itself is optional, and 
 
 ## Setup
 
-**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to have `generate`, the error says so rather than failing obscurely.
+**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to reach the transcription service, `doctor` says so rather than failing obscurely halfway through a recording.
 
 ## Signing the user in
+
+Two accounts, and `doctor` reports them on separate lines because being signed in to one and not the other fails in the middle of a task rather than at the start.
+
+### The Plaud account — which recordings can be read
 
 When `doctor` reports `NOT AUTHENTICATED`, **conduct the login yourself, in the conversation.** The person you are working for is not going to open a terminal, and they do not need to: two questions and two commands is the whole procedure.
 
@@ -171,11 +195,28 @@ The token is a JWT valid for months, and **nothing in this stack refreshes it**.
 
 Accounts are per person and each one sees only its own recordings. A teammate's call is not missing, it is simply not in the account this environment is authenticated as.
 
+### The transcription service — whether anything can be transcribed
+
+Transcription runs on a service shared by everyone at the domains it serves, and a Google account is what gets in. Nothing from the cloud it runs on is needed: no account there, no keys.
+
+```bash
+plaud auth status      # who is signed in, and whether it still works
+plaud auth login       # sign in
+plaud auth logout      # forget it
+```
+
+**This is the one step in this skill you cannot do for the user.** `auth login` opens a browser and waits on a local port, so it needs somebody at the machine. Say so plainly and ask them to run it once; the session is then kept and refreshed by itself, and everything after it is yours again.
+
+An account outside the served domains is refused by name, saying which domains those are — which is a wrong-account answer, not a broken-setup one, and the cure is `plaud auth logout` and signing in as the right one.
+
+The two sign-ins are independent. A machine can read recordings and be unable to transcribe them, or the reverse; `doctor` is what tells the two apart.
+
 | Variable | Effect |
 | :-- | :-- |
 | `PLAUD_TOKEN` | Access token, no config file needed |
 | `PLAUD_EMAIL`, `PLAUD_CODE`, `PLAUD_OTP_TOKEN` | The code flow without flags |
 | `PLAUD_PASSWORD` | Password for `login --password`, unattended |
+| `PLAUD_WHISPER_URL` | Point at a different transcription service |
 | `PLAUD_BIN` | Use this binary instead of resolving one |
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
 | `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
@@ -187,10 +228,19 @@ plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transc
            [--has-summary] [--search STR] [--limit N] [--json]
 plaud info <id> [--json]
 
-plaud generate <id>... [--lang auto|pt|en] [--speaker=false] [--summary-template ID]
-                       [--reload] [--wait] [--timeout D] [--poll-interval D]
 plaud download <id> [--audio] [--transcript] [--summary] [--all]
-                    [--format json|txt|srt|md] [--output-dir DIR]
+                    [--format json|txt|srt|md] [--output-dir DIR] [--language pt]
+                    [--whisper=false]                # refuse to transcribe, just report
+plaud transcribe <id> [--format md|json|txt|srt] [--language pt] [--options no-polish]
+                      [--output-dir DIR] [--identify]
+
+plaud auth login | auth status | auth logout        # the transcription service
+
+plaud speaker list [--long]
+plaud speaker name <recording-id> <label> "First Last" --company X [--surname-unknown]
+plaud speaker rename <current> "First Last" --company X
+plaud speaker forget "First Last"
+plaud speaker enroll --company X [--dry-run] [--limit N] [--max-per-speaker N]
 
 plaud search "text" [--limit N] [--no-cache]     # over transcripts, cached locally
 plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
@@ -205,6 +255,7 @@ plaud me
 ## Rules
 
 - **Never delete a recording from Plaud.** This skill reads, transcribes and organizes, and nothing here removes anything from the account.
-- **Transcription costs quota**, so activating it is a decision, not a step. One recording on request, a batch only after the user confirms the batch.
+- **Transcribing costs a download and a GPU pass**, so it is a decision, not a step. One recording on request, a batch only after the user confirms the batch.
+- **Never invent who a speaker is.** The service names the voices it already knows; an unnamed one stays `SPEAKER_01` until somebody who was in the room says otherwise. Guessing from context puts a name on a voice for everyone else too.
 - **Keep the transcript in the language it was spoken.** Translating a meeting loses what made it worth keeping; a summary follows the destination's language if that differs.
 - **The transcript is the source, the note is what people read.** Keep the transcript reachable from the note rather than replacing it.

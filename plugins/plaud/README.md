@@ -24,6 +24,8 @@ What a fresh environment still needs is an authenticated account:
 
 **The assistant signs the user in, and never asks for a password.** When the account is not authenticated, the skill runs the login as a conversation: it asks for the email, sends a one-time code, asks for the six digits that arrived in the inbox, and stores the token. A code expires in minutes and works once, which is what makes it safe to say out loud; a password is neither. Nothing in that flow needs a browser, an open port or a visible terminal, so it behaves the same in a terminal, a desktop app, a phone or a sandbox.
 
+Transcription is a second sign-in, to the service that does it: `plaud auth login`, with a Google account on one of the domains that service serves. That one **does** open a browser and wait on a local port, so it is the single step the assistant cannot do for the user — once per machine, after which the session refreshes itself. `doctor` reports the two on separate lines, because being signed in to one and not the other fails in the middle of a task rather than at its start.
+
 The two halves are callable separately, which is what makes it drivable by something that is not the account owner:
 
 ```bash
@@ -71,7 +73,7 @@ Ask Claude to process a recording. Claude resolves the engine through `${CLAUDE_
 python3 "$HUB" doctor                                            # CLI, auth, repository setup
 python3 "$HUB" config                                            # resolved setup and mode
 python3 "$HUB" fetch <id> --to comms/2026-08-06-call/transcript.md
-python3 "$HUB" fetch <id> --generate                             # transcribe first, then fetch
+python3 "$HUB" fetch <id>                                        # transcribing it first if needed
 
 python3 "$HUB" refresh && python3 "$HUB" build                   # catalog mode
 python3 "$HUB" pull <id> --project acme --file comms/2026-08-06-call/
@@ -79,4 +81,4 @@ python3 "$HUB" query "SELECT id, filename FROM unfiled"          # no sqlite3 bi
 python3 "$HUB" status
 ```
 
-Transcription is not automatic and consumes the Plaud account's quota, so `fetch` refuses a recording that has none until `--generate` says otherwise. Nothing here deletes anything from the account.
+Plaud no longer transcribes for these accounts: a recording without a transcript is sent to the Whisper service on the way through, which takes minutes and wakes a GPU somebody pays for. Speakers the service recognises come back named as `First Last (Company)`. Nothing here deletes anything from the account.

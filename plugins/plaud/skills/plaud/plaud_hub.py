@@ -314,14 +314,6 @@ def _download(rid, kind, target):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def _generate(rid):
-    if not _supports("generate"):
-        sys.exit(f"this plaud CLI ({_cli_version()} at {plaud_bin()}) has no `generate` command.\n"
-                 f"  Upgrade it, or let this skill install its own copy by unsetting PLAUD_BIN "
-                 f"and taking `plaud` off PATH.")
-    subprocess.run([plaud_bin(), "generate", rid, "--wait"], check=True)
-
-
 # --------------------------------------------------------------------------- catalog
 
 def load_catalog(repo):
@@ -369,6 +361,22 @@ def cmd_config(repo, _args):
               file=sys.stderr)
 
 
+def _service_auth():
+    """Whether the transcription service will accept this machine.
+
+    Separate from the Plaud account: one says which recordings can be read, the
+    other whether anything can be transcribed. Being signed in to one and not
+    the other is the confusing half-state this line exists to name.
+    """
+    if not _supports("auth"):
+        return "NO, this plaud CLI predates the transcription service"
+    out = subprocess.run([plaud_bin(), "auth", "status"], capture_output=True, text=True)
+    said = (out.stdout or out.stderr).strip().splitlines()
+    if out.returncode != 0:
+        return "NOT SIGNED IN: " + (said[-1] if said else "run `plaud auth login`")
+    return said[0] if said else "ok"
+
+
 def cmd_doctor(repo, _args):
     """Everything that has to be true for this skill to work, and whether it is."""
     binary = plaud_bin()
@@ -377,8 +385,9 @@ def cmd_doctor(repo, _args):
     lines = [
         f"python        {platform.python_version()} ({sys.executable})",
         f"plaud CLI     {_cli_version()} at {binary}",
-        f"  generate    {'yes' if _supports('generate') else 'NO, cannot activate transcription'}",
-        f"  auth        {'ok, from ' + source if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
+        f"  transcribe  {'yes' if _supports('transcribe') else 'NO, too old to transcribe anything'}",
+        f"  plaud auth  {'ok, from ' + source if auth.returncode == 0 else 'NOT AUTHENTICATED: ' + (auth.stderr or auth.stdout).strip()}",
+        f"  service     {_service_auth()}",
     ]
     expiry = _token_expiry()
     if expiry:
@@ -461,16 +470,8 @@ def _targets(repo, meta, to, summary_to):
 
 def cmd_fetch(repo, args):
     meta = _probe(args.id)
-    if not meta["is_trans"]:
-        if not args.generate:
-            sys.exit(f"{args.id} has no transcript in Plaud yet.\n"
-                     f"  Activate it: plaud generate {args.id} --wait   (consumes Plaud quota)\n"
-                     f"  Or re-run this with --generate.")
-        _generate(args.id)
-        meta = _probe(args.id)
-        if not meta["is_trans"]:
-            sys.exit(f"{args.id} still has no transcript after generate; check `plaud info {args.id}`.")
-
+    # No gate on whether Plaud has a transcript: `download` transcribes the
+    # recording itself when it does not, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
     transcript = _download(args.id, "transcript", transcript)
     if not transcript:
@@ -576,9 +577,6 @@ def cmd_pull(repo, args):
     rec = catalog.get(args.id)
     if rec is None:
         sys.exit(f"unknown recording {args.id}. Run `refresh` first")
-    if not rec.get("is_trans"):
-        sys.exit(f"{args.id} has no transcript in Plaud yet (activate it: plaud generate {args.id} --wait)")
-
     slug = _slug(rec)
     transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"))
     rec["transcript_path"] = repo.rel(transcript) if transcript else None
@@ -661,8 +659,9 @@ def main():
     p.add_argument("id")
     p.add_argument("--to", help="destination: a .md file for the transcript, or a directory")
     p.add_argument("--summary-to", help="destination file for the summary, if you want it")
-    p.add_argument("--generate", action="store_true",
-                   help="transcribe first if Plaud has no transcript yet (consumes quota)")
+    # Accepted and ignored: fetch transcribes by itself now, and an agent
+    # working from an older copy of the skill still passes this.
+    p.add_argument("--generate", action="store_true", help=argparse.SUPPRESS)
     p.set_defaults(fn=cmd_fetch)
 
     sub.add_parser("refresh", help="merge `plaud list` into the catalog").set_defaults(fn=cmd_refresh)
