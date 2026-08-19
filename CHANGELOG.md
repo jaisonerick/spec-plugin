@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v7] - 2026-08-19
+
+### Changed
+- plaud: pin the release that has the service in it
+
 ## [Plugin: artifact-publish v4] - 2026-08-12
 
 ### Changed
