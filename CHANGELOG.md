@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v8] - 2026-08-19
+
+### Changed
+- plaud: say what Windows does to an unsigned binary
+
 ## [Plugin: plaud v7] - 2026-08-19
 
 ### Changed
