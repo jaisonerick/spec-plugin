@@ -71,6 +71,19 @@ python3 "$HUB" fetch <id>                       # into the configured directory,
 
 Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
 
+### Saying who was in the room
+
+The repository's `context` document is the base and covers every recording in it: what gets read out of it is who the people are and how their names, companies and systems are spelt, which the subject of one meeting barely changes. **You do not need to know what a recording is about to fetch it well.**
+
+What that document cannot know is who was in this particular room. The calendar can, and knows it before anybody has heard the audio: the event at the recording's time carries a title and a guest list of real names and email domains, which is exactly the material a name is corrected from. Look it up when the recording involves people the repository does not name — an outside company, a first meeting, a recording nobody can place — and pass what you find:
+
+```bash
+python3 "$HUB" fetch <id> --about "Calendário: CERC x Vexia, esteira de pagamentos.
+Presentes: Éricles Bento (CERC), Luana (Vexia), Thiago Duarte (Vexia)."
+```
+
+`--about` is added to the repository's document rather than replacing it, so the project's spellings and the room's both reach the transcript. Never invent a guest list: an attendee you guessed at becomes a name written into the record.
+
 Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
 
 ## Who is speaking
@@ -254,7 +267,7 @@ plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transc
            [--has-summary] [--search STR] [--limit N] [--json]
 plaud info <id> [--json]
 
-plaud transcript <id> --context FILE              # required: what settles the spelling of names
+plaud transcript <id> --context FILE|TEXT         # required: a file describing it, or the description
                       [--format md|json|txt|srt] [--language pt]
                       [--output-dir DIR] [--identify]
                       [--force]                    # transcribe again instead of reusing
