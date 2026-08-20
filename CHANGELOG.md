@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v12] - 2026-08-20
+
+### Changed
+- plaud: say who was in the room, from what already knows
+
 ## [Plugin: plaud v11] - 2026-08-20
 
 ### Changed
