@@ -58,10 +58,10 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.11.0"
+CLI_VERSION = "0.12.0"
 
 CONFIG_NAME = ".plaud.json"
-CONFIG_KEYS = {"hub", "scratch", "filing", "exclude_tags", "exclude_reason", "utc_offset"}
+CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
 
 # Curation is set by a person or an agent, and a refresh never clobbers it.
 CURATION_FIELDS = ("project", "path", "repo", "transcript_path", "summary_path", "notes")
@@ -95,6 +95,7 @@ class Repo:
         self.hub = self._abs(raw.get("hub"))
         self.scratch = self._abs(raw.get("scratch"))
         self.filing = raw.get("filing")
+        self.context = self._abs(raw.get("context"))
         self.exclude_tags = set(raw.get("exclude_tags") or [])
         self.exclude_reason = raw.get("exclude_reason") or "excluded-by-config"
         self.utc_offset = raw.get("utc_offset")
@@ -317,19 +318,29 @@ def _probe(rid):
     }
 
 
-# The two kinds come from different commands, and the difference is real: a
-# transcript is made when nobody has one yet, a summary is only ever copied.
-_FETCH_ARGV = {
-    "transcript": lambda rid: ["transcript", rid, "--format", "md"],
-    "summary": lambda rid: ["download", rid, "--summary"],
-}
+def _fetch_argv(rid, kind, repo):
+    """The command for one content kind. A transcript is made when nobody has
+    one yet, and needs the document that settles how names are spelt; a summary
+    is only ever copied."""
+    if kind == "summary":
+        return ["download", rid, "--summary"]
+    if not repo.context:
+        sys.exit(
+            f'no context document configured. Add "context" to {CONFIG_NAME}, '
+            "pointing at a file that describes this work: a briefing, an agenda, "
+            "a list of the people and companies involved. It is what settles how "
+            "their names are spelt, and transcripts drift apart without it."
+        )
+    if not os.path.exists(repo.context):
+        sys.exit(f"the context document {repo.rel(repo.context)} does not exist")
+    return ["transcript", rid, "--format", "md", "--context", repo.context]
 
 
-def _download(rid, kind, target):
+def _download(rid, kind, target, repo):
     """Bring one content kind down as markdown to `target`. Returns the path, or None."""
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run([plaud_bin()] + _FETCH_ARGV[kind](rid) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo) +
                        ["--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
@@ -505,11 +516,11 @@ def cmd_fetch(repo, args):
     # No gate on whether Plaud has a transcript: `transcript` makes one when
     # nobody has, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
-    transcript = _download(args.id, "transcript", transcript)
+    transcript = _download(args.id, "transcript", transcript, repo)
     if not transcript:
         sys.exit(f"plaud produced no transcript file for {args.id}")
     if summary and meta["is_summary"]:
-        summary = _download(args.id, "summary", summary)
+        summary = _download(args.id, "summary", summary, repo)
     else:
         summary = None
 
@@ -610,10 +621,10 @@ def cmd_pull(repo, args):
     if rec is None:
         sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     slug = _slug(rec)
-    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"))
+    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo)
     rec["transcript_path"] = repo.rel(transcript) if transcript else None
     if rec.get("is_summary"):
-        summary = _download(args.id, "summary", os.path.join(repo.summaries, f"{slug}.md"))
+        summary = _download(args.id, "summary", os.path.join(repo.summaries, f"{slug}.md"), repo)
         rec["summary_path"] = repo.rel(summary) if summary else None
     if args.file:
         rec["path"] = args.file
