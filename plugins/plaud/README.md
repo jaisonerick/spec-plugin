@@ -84,4 +84,4 @@ python3 "$HUB" query "SELECT id, filename FROM unfiled"          # no sqlite3 bi
 python3 "$HUB" status
 ```
 
-Plaud no longer transcribes for these accounts: a recording without a transcript is sent to the Whisper service on the way through, which takes minutes and wakes a GPU somebody pays for. Speakers the service recognises come back named as `First Last (Company)`. Nothing here deletes anything from the account.
+A recording without a transcript is transcribed on the way through, which takes minutes rather than seconds. Speakers the service recognises come back named as `First Last (Company)`. Nothing here deletes anything from the account.
