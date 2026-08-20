@@ -58,7 +58,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.10.0"
+CLI_VERSION = "0.11.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -317,12 +317,20 @@ def _probe(rid):
     }
 
 
+# The two kinds come from different commands, and the difference is real: a
+# transcript is made when nobody has one yet, a summary is only ever copied.
+_FETCH_ARGV = {
+    "transcript": lambda rid: ["transcript", rid, "--format", "md"],
+    "summary": lambda rid: ["download", rid, "--summary"],
+}
+
+
 def _download(rid, kind, target):
-    """Download one content kind as markdown to `target`. Returns the path, or None."""
+    """Bring one content kind down as markdown to `target`. Returns the path, or None."""
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run([plaud_bin(), "download", rid, f"--{kind}", "--format", "md",
-                        "--output-dir", tmp], check=True)
+        subprocess.run([plaud_bin()] + _FETCH_ARGV[kind](rid) +
+                       ["--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
             return None
@@ -494,8 +502,8 @@ def _targets(repo, meta, to, summary_to):
 
 def cmd_fetch(repo, args):
     meta = _probe(args.id)
-    # No gate on whether Plaud has a transcript: `download` transcribes the
-    # recording itself when it does not, which is the only way one is made now.
+    # No gate on whether Plaud has a transcript: `transcript` makes one when
+    # nobody has, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
     transcript = _download(args.id, "transcript", transcript)
     if not transcript:

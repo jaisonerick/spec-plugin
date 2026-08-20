@@ -252,11 +252,12 @@ plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transc
            [--has-summary] [--search STR] [--limit N] [--json]
 plaud info <id> [--json]
 
-plaud download <id> [--audio] [--transcript] [--summary] [--all]
-                    [--format json|txt|srt|md] [--output-dir DIR] [--language pt]
-                    [--whisper=false]                # refuse to transcribe, just report
-plaud transcribe <id> [--format md|json|txt|srt] [--language pt] [--options no-polish]
-                      [--output-dir DIR] [--identify]
+plaud transcript <id> [--format md|json|txt|srt] [--language pt] [--context FILE]
+                      [--output-dir DIR] [--identify] [--force]
+                      [--whisper=false]               # refuse to transcribe, just report
+                      [--polish=false] [--diarize=false] [--compact=false]
+                      [--speaker-recognition=false]
+plaud download <id> [--audio] [--summary] [--output-dir DIR] [--force]
 
 plaud auth login | auth status | auth logout        # the transcription service
 
@@ -274,7 +275,9 @@ plaud tag list | tag create "Name" | tag delete "Name"
 plaud me
 ```
 
-`--debug`, `--json` and `--help` work on every command. `plaud sync` bulk-downloads everything to a local folder; prefer `fetch` or `pull`, which put the file where the repository wants it.
+`--debug`, `--json` and `--help` work on every command.
+
+`transcript` and `download` also take the filters `list` takes, plus `--all`, and then act on every recording they keep, skipping what is already on disk. That is the bulk path, and it belongs to a person who asked for a batch: prefer `fetch` or `pull`, which put one file where the repository wants it.
 
 ## Rules
 
