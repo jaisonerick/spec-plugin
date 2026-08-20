@@ -10,6 +10,7 @@ import argparse
 import collections
 import json
 import math
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +18,16 @@ import grouping
 import model
 
 
+class ExtractMissing(RuntimeError):
+    """The extract is gone, which is ordinary: /tmp is swept between sessions."""
+
+
 def _load(path: Path) -> tuple[dict[str, Any], dict[str, model.Element]]:
+    if not path.exists():
+        raise ExtractMissing(
+            f"no extract at {path}. Run extract.py on the board first; it takes about "
+            "30 seconds and writes this file. Extracts live in /tmp and do not survive."
+        )
     document = json.loads(path.read_text(encoding="utf-8"))
     elements = {}
     for raw in document["elements"]:
@@ -240,7 +250,11 @@ def main() -> int:
     residue.set_defaults(run=cmd_residue)
 
     args = parser.parse_args()
-    document, elements = _load(args.extract)
+    try:
+        document, elements = _load(args.extract)
+    except ExtractMissing as err:
+        print(err, file=sys.stderr)
+        return 2
     args.run(document, elements, args)
     return 0
 
