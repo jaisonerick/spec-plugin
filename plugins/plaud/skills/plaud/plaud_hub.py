@@ -58,7 +58,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.12.0"
+CLI_VERSION = "0.13.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -318,12 +318,19 @@ def _probe(rid):
     }
 
 
-def _fetch_argv(rid, kind, repo):
+def _fetch_argv(rid, kind, repo, about=None):
     """The command for one content kind. A transcript is made when nobody has
     one yet, and needs the document that settles how names are spelt; a summary
-    is only ever copied."""
+    is only ever copied.
+
+    `about` is what is known about this recording in particular and is not in
+    the repository's document: who was in the room, what it was called in the
+    calendar. It is added to that document rather than replacing it, because
+    the two know different things."""
     if kind == "summary":
         return ["download", rid, "--summary"]
+    if about and not repo.context:
+        return ["transcript", rid, "--format", "md", "--context", about]
     if not repo.context:
         sys.exit(
             f'no context document configured. Add "context" to {CONFIG_NAME}, '
@@ -333,14 +340,17 @@ def _fetch_argv(rid, kind, repo):
         )
     if not os.path.exists(repo.context):
         sys.exit(f"the context document {repo.rel(repo.context)} does not exist")
-    return ["transcript", rid, "--format", "md", "--context", repo.context]
+    if not about:
+        return ["transcript", rid, "--format", "md", "--context", repo.context]
+    combined = open(repo.context, encoding="utf-8").read().rstrip() + "\n\n" + about.strip() + "\n"
+    return ["transcript", rid, "--format", "md", "--context", combined]
 
 
-def _download(rid, kind, target, repo):
+def _download(rid, kind, target, repo, about=None):
     """Bring one content kind down as markdown to `target`. Returns the path, or None."""
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, about) +
                        ["--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
@@ -516,7 +526,7 @@ def cmd_fetch(repo, args):
     # No gate on whether Plaud has a transcript: `transcript` makes one when
     # nobody has, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
-    transcript = _download(args.id, "transcript", transcript, repo)
+    transcript = _download(args.id, "transcript", transcript, repo, args.about)
     if not transcript:
         sys.exit(f"plaud produced no transcript file for {args.id}")
     if summary and meta["is_summary"]:
@@ -621,7 +631,7 @@ def cmd_pull(repo, args):
     if rec is None:
         sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     slug = _slug(rec)
-    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo)
+    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo, args.about)
     rec["transcript_path"] = repo.rel(transcript) if transcript else None
     if rec.get("is_summary"):
         summary = _download(args.id, "summary", os.path.join(repo.summaries, f"{slug}.md"), repo)
@@ -702,6 +712,7 @@ def main():
     p.add_argument("id")
     p.add_argument("--to", help="destination: a .md file for the transcript, or a directory")
     p.add_argument("--summary-to", help="destination file for the summary, if you want it")
+    p.add_argument("--about", help="what is known about this recording in particular (who was there, what the calendar called it); added to the repository's context document")
     # Accepted and ignored: fetch transcribes by itself now, and an agent
     # working from an older copy of the skill still passes this.
     p.add_argument("--generate", action="store_true", help=argparse.SUPPRESS)
@@ -716,6 +727,7 @@ def main():
     p.add_argument("id")
     p.add_argument("--project", help="curation: project label")
     p.add_argument("--file", help="curation: where it was filed, relative to the repository root")
+    p.add_argument("--about", help="what is known about this recording in particular (who was there, what the calendar called it); added to the repository's context document")
     p.set_defaults(fn=cmd_pull)
 
     p = sub.add_parser("query", help="run a read-only SQL query against the index")
