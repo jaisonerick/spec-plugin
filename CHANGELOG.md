@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: miro-board v2] - 2026-08-20
+
+### Changed
+- miro-board: say what to run when the extract is gone
+
 ## [Plugin: plaud v12] - 2026-08-20
 
 ### Changed
