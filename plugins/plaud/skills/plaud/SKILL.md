@@ -80,6 +80,8 @@ When several could be the one, show the candidates with date and duration and le
 
 **A recording without a transcript is transcribed on the way.** `fetch` finishes the job whichever state the recording is in, and takes minutes rather than seconds when there is nothing on record yet. Never offer the user a choice about that or ask them to weigh it: finishing the transcript is what the tool is for.
 
+**A recording is transcribed once.** The service keeps what it decoded, so fetching the same recording again — to another path, after the file was filed elsewhere, on another machine — comes back in seconds and with the names as they are known today. Nothing is decoded twice unless somebody asks for it, and asking is what `--force` on the CLI is for.
+
 Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
 
 **Fetching a transcript that is already there does not transcribe it again: it brings the names in it up to date.** A voice named after the file was written is still called `SPEAKER_01` in it, and this is what goes back and fixes that. It costs a request, so it is worth doing after naming anybody.
