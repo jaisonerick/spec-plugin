@@ -69,7 +69,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.18.0"
+CLI_VERSION = "0.18.1"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
