@@ -346,40 +346,40 @@ def _probe(rid):
     }
 
 
-def _fetch_argv(rid, kind, repo, about=None):
+def _fetch_argv(rid, kind, repo, context=None, context_file=None):
     """The command for one content kind. A transcript is made when nobody has
     one yet, and needs what describes the recording; a summary is only ever
     copied.
 
-    `about` is what is known about this recording in particular and is not in
-    the repository's document: who was in the room, what it was called in the
-    calendar. It is added to that document rather than replacing it, because
-    the two know different things.
+    The flags are the CLI's, and mean there what they mean here, with one
+    thing added: `--context` written for a single recording is added to the
+    repository's document rather than replacing it. The two know different
+    things — the document holds the project's people and their spellings, and
+    the call holds who was in this room — and dropping either loses names.
 
-    The CLI is told which of the two it is getting. A description is passed as
-    text and a file by its path, because a description carries a date, a date
-    carries a slash, and anything guessing between the two reads the sentence
-    as a filename."""
+    `--context-file` replaces the document, which is how one recording is
+    described by a paper of its own."""
     if kind == "summary":
         return ["download", rid, "--summary"]
 
-    if repo.context and not os.path.exists(repo.context):
-        sys.exit(f"the context document {repo.rel(repo.context)} does not exist")
+    document = context_file or repo.context
+    if document and not os.path.exists(document):
+        sys.exit(f"the context document {repo.rel(document)} does not exist")
 
-    if repo.context and not about:
-        return ["transcript", rid, "--format", "md", "--context-file", repo.context]
+    if document and not context:
+        return ["transcript", rid, "--format", "md", "--context-file", document]
 
-    if repo.context:
-        written = open(repo.context, encoding="utf-8").read().rstrip() + "\n\n" + about.strip() + "\n"
+    if document:
+        written = open(document, encoding="utf-8").read().rstrip() + "\n\n" + context.strip() + "\n"
         return ["transcript", rid, "--format", "md", "--context", written]
 
-    if about:
-        return ["transcript", rid, "--format", "md", "--context", about.strip()]
+    if context:
+        return ["transcript", rid, "--format", "md", "--context", context.strip()]
 
     sys.exit(
         "nothing describes this recording, and a transcript needs it: it is what "
         "settles how the names in it are spelt.\n"
-        "  Pass it now:   --about \"Reunião X entre Fulano (Empresa) e Beltrano "
+        "  Pass it now:   --context \"Reunião X entre Fulano (Empresa) e Beltrano "
         "(Empresa); assunto\"\n"
         f"  Or for good:   set \"context\" in {CONFIG_NAME} to a file describing "
         "this work — a briefing, an agenda, the people and companies involved.\n"
@@ -389,7 +389,7 @@ def _fetch_argv(rid, kind, repo, about=None):
     )
 
 
-def _download(rid, kind, target, repo, about=None):
+def _download(rid, kind, target, repo, context=None, context_file=None):
     """Bring one content kind down as markdown to `target`. Returns the path, or None.
 
     A transcript is written straight to the file, so fetching one that is
@@ -398,13 +398,13 @@ def _download(rid, kind, target, repo, about=None):
     itself, so it comes down through a directory of its own."""
     if kind == "transcript":
         os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, about) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file) +
                        ["--into", target], check=True)
         return target if os.path.exists(target) else None
 
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, about) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file) +
                        ["--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
@@ -580,7 +580,7 @@ def cmd_fetch(repo, args):
     # No gate on whether Plaud has a transcript: `transcript` makes one when
     # nobody has, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
-    transcript = _download(args.id, "transcript", transcript, repo, args.about)
+    transcript = _download(args.id, "transcript", transcript, repo, args.context, args.context_file)
     if not transcript:
         sys.exit(f"plaud produced no transcript file for {args.id}")
     if summary and meta["is_summary"]:
@@ -685,7 +685,8 @@ def cmd_pull(repo, args):
     if rec is None:
         sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     slug = _slug(rec)
-    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo, args.about)
+    transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo,
+                              args.context, args.context_file)
     rec["transcript_path"] = repo.rel(transcript) if transcript else None
     if rec.get("is_summary"):
         summary = _download(args.id, "summary", os.path.join(repo.summaries, f"{slug}.md"), repo)
@@ -766,7 +767,8 @@ def main():
     p.add_argument("id")
     p.add_argument("--to", help="destination: a .md file for the transcript, or a directory")
     p.add_argument("--summary-to", help="destination file for the summary, if you want it")
-    p.add_argument("--about", help="what is known about this recording in particular (who was there, what the calendar called it); added to the repository's context document")
+    p.add_argument("--context", help="what this recording is: who was there, what it is about, in real names. Added to the repository's context document rather than replacing it")
+    p.add_argument("--context-file", help="a file describing this recording, used instead of the repository's context document")
     # Accepted and ignored: fetch transcribes by itself now, and an agent
     # working from an older copy of the skill still passes this.
     p.add_argument("--generate", action="store_true", help=argparse.SUPPRESS)
@@ -781,7 +783,8 @@ def main():
     p.add_argument("id")
     p.add_argument("--project", help="curation: project label")
     p.add_argument("--file", help="curation: where it was filed, relative to the repository root")
-    p.add_argument("--about", help="what is known about this recording in particular (who was there, what the calendar called it); added to the repository's context document")
+    p.add_argument("--context", help="what this recording is: who was there, what it is about, in real names. Added to the repository's context document rather than replacing it")
+    p.add_argument("--context-file", help="a file describing this recording, used instead of the repository's context document")
     p.set_defaults(fn=cmd_pull)
 
     p = sub.add_parser("query", help="run a read-only SQL query against the index")

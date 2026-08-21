@@ -47,10 +47,10 @@ Prints the resolved configuration alone, and which of the two modes applies:
 
 `filing` in the output is the document that says where a transcript belongs in this repository. **Read it before writing anything.** If it is absent, the repository has not declared a convention: look at its `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
 
-**A repository with no `.plaud.json` declares no context either, and then describing the recording is your job.** Nothing is broken and nothing needs to be created: pass `--about` on the fetch, in the same call. What it must carry is who is in the recording and what it is about, in real names:
+**A repository with no `.plaud.json` declares no context either, and then describing the recording is your job.** Nothing is broken and nothing needs to be created: pass `--context` on the fetch, in the same call. What it must carry is who is in the recording and what it is about, in real names:
 
 ```bash
-"$HUB" fetch <id> --about "Reunião entre Jaison Erick (NexaEdge) e Amanda Destro (Aurora)
+"$HUB" fetch <id> --context "Reunião entre Jaison Erick (NexaEdge) e Amanda Destro (Aurora)
 sobre o faturamento da CERC. Termos: CCB, agenda, trava."
 ```
 
@@ -103,13 +103,15 @@ The repository's `context` document is the base and covers every recording in it
 What that document cannot know is who was in this particular room. The calendar can, and knows it before anybody has heard the audio: the event at the recording's time carries a title and a guest list of real names and email domains, which is exactly the material a name is corrected from. Look it up when the recording involves people the repository does not name — an outside company, a first meeting, a recording nobody can place — and pass what you find:
 
 ```bash
-"$HUB" fetch <id> --about "Calendário: CERC x Vexia, esteira de pagamentos.
+"$HUB" fetch <id> --context "Calendário: CERC x Vexia, esteira de pagamentos.
 Presentes: Éricles Bento (CERC), Luana (Vexia), Thiago Duarte (Vexia)."
 ```
 
-`--about` is added to the repository's document rather than replacing it, so the project's spellings and the room's both reach the transcript. Never invent a guest list: an attendee you guessed at becomes a name written into the record.
+**`--context` and `--context-file` are the CLI's own flags and mean the same thing here**, with one addition: a `--context` written for a single recording is **added** to the repository's document rather than replacing it, so the project's spellings and the room's both reach the transcript. `--context-file` replaces that document, which is how one recording is described by a paper of its own.
 
-The two reach the CLI as different flags — `--context-file` for the repository's document, `--context` for what you wrote — and `fetch` chooses between them. Nothing guesses from the value any more: a description carries a date, a date carries a slash, and a slash read as a path turned the sentence into a filename nobody could open.
+Never invent a guest list: an attendee you guessed at becomes a name written into the record.
+
+Which of the two you pass is said, never guessed from the value: a description carries a date, a date carries a slash, and a slash read as a path turned the sentence into a filename nobody could open.
 
 Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
 
