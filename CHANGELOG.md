@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v19] - 2026-08-21
+
+### Changed
+- plaud: a recording is transcribed once
+
 ## [Plugin: plaud v18] - 2026-08-21
 
 ### Changed
