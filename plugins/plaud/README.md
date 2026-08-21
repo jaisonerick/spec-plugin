@@ -70,7 +70,7 @@ The hub directory then holds `catalog.jsonl` (source of truth, git-tracked, one 
 
 ## Use
 
-Ask Claude to process a recording. Claude resolves the engine through `${CLAUDE_PLUGIN_ROOT}`; to drive it by hand, the installed copy sits under `~/.claude/plugins/cache/<marketplace>/plaud/<version>/skills/plaud/plaud_hub.py`, where `<version>` moves on every update.
+Ask Claude to process a recording. Claude resolves the engine through `${CLAUDE_PLUGIN_ROOT}`; to drive it by hand, the installed copy sits under `~/.claude/plugins/cache/<marketplace>/plaud/<version>/skills/plaud/plaud_hub`, where `<version>` moves on every update. That entry point is a shell script that finds this machine's Python 3 and runs the engine with it.
 
 ```bash
 python3 "$HUB" doctor                                            # CLI, auth, repository setup

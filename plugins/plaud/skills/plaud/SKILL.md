@@ -23,19 +23,21 @@ It stops at the transcript. Turning it into a note, filing it, naming the file, 
 **Signing in is your job, not the user's.** Assume the person you are working for will never run a command: walk them through it in the conversation, asking for an emailed code and never for a password.
 
 ```bash
-HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub.py"
+HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub"
 ```
+
+`$HUB` runs itself: it finds this machine's Python 3 — `python3`, `python` or the `py` launcher — and runs the engine with it, so nothing here assumes a name that a given machine may not have.
 
 ## Start by checking the ground
 
 ```bash
-python3 "$HUB" doctor
+"$HUB" doctor
 ```
 
 One report covering the CLI, both sign-ins, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem. `NOT AUTHENTICATED` on the Plaud line and `NOT SIGNED IN` on the service line both send you to *Signing the user in*, and neither is a blocker to hand back.
 
 ```bash
-python3 "$HUB" config
+"$HUB" config
 ```
 
 Prints the resolved configuration alone, and which of the two modes applies:
@@ -61,8 +63,8 @@ When several could be the one, show the candidates with date and duration and le
 ## Bringing one transcript in
 
 ```bash
-python3 "$HUB" fetch <id> --to comms/2026-08-06-reuniao-x/transcript.md
-python3 "$HUB" fetch <id>                       # into the configured directory, slug-named
+"$HUB" fetch <id> --to comms/2026-08-06-reuniao-x/transcript.md
+"$HUB" fetch <id>                       # into the configured directory, slug-named
 ```
 
 `--to` ending in `.md` is the transcript's file; anything else is a directory, and the summary lands beside it (`--summary-to` puts it somewhere specific).
@@ -92,7 +94,7 @@ The repository's `context` document is the base and covers every recording in it
 What that document cannot know is who was in this particular room. The calendar can, and knows it before anybody has heard the audio: the event at the recording's time carries a title and a guest list of real names and email domains, which is exactly the material a name is corrected from. Look it up when the recording involves people the repository does not name — an outside company, a first meeting, a recording nobody can place — and pass what you find:
 
 ```bash
-python3 "$HUB" fetch <id> --about "Calendário: CERC x Vexia, esteira de pagamentos.
+"$HUB" fetch <id> --about "Calendário: CERC x Vexia, esteira de pagamentos.
 Presentes: Éricles Bento (CERC), Luana (Vexia), Thiago Duarte (Vexia)."
 ```
 
@@ -136,12 +138,12 @@ Say where the transcript landed and where the note went, so the next reader can 
 Only when `config` reports a hub. The catalog is `catalog.jsonl` (source of truth, git-tracked, one JSON object per recording), a git-ignored sqlite index rebuilt from it, and the raw transcripts pulled so far.
 
 ```bash
-python3 "$HUB" refresh     # merge `plaud list` + tags into the catalog; curation is preserved
-python3 "$HUB" build       # recompile the sqlite index from the catalog
-python3 "$HUB" status      # counts by status
-python3 "$HUB" pull <id>   # fetch into the raw store and record the paths
-python3 "$HUB" set <id> project=<label> path=<repo-relative> status=filed
-python3 "$HUB" gen-links   # regenerate the page listing what still needs transcription
+"$HUB" refresh     # merge `plaud list` + tags into the catalog; curation is preserved
+"$HUB" build       # recompile the sqlite index from the catalog
+"$HUB" status      # counts by status
+"$HUB" pull <id>   # fetch into the raw store and record the paths
+"$HUB" set <id> project=<label> path=<repo-relative> status=filed
+"$HUB" gen-links   # regenerate the page listing what still needs transcription
 ```
 
 `status` is the manifest, so check it before processing a recording twice: `pending` (no transcript yet), `transcribed` (has one, not filed), `filed` (mapped to a destination through `path` and/or `repo`), `excluded` (out of scope for this repository). The first two are recomputed on every refresh; the last two are sticky, and a refresh never touches them or any other curation field.
@@ -149,15 +151,15 @@ python3 "$HUB" gen-links   # regenerate the page listing what still needs transc
 Ad-hoc queries go through `query`, which is read-only and needs no `sqlite3` binary. The index has a `pending_transcription` and an `unfiled` view:
 
 ```bash
-python3 "$HUB" query "SELECT id, recorded_at, duration_min, filename FROM unfiled"
-python3 "$HUB" query "SELECT * FROM recordings WHERE project = 'acme'" --json
+"$HUB" query "SELECT id, recorded_at, duration_min, filename FROM unfiled"
+"$HUB" query "SELECT * FROM recordings WHERE project = 'acme'" --json
 ```
 
 A batch is worth agreeing on before it starts, because it is a lot of recordings and minutes each, not because of what it costs. Filter to what the user actually wants, and confirm the set with them first:
 
 ```bash
-for id in $(python3 "$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header); do
-  python3 "$HUB" pull "$id"
+for id in $("$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header); do
+  "$HUB" pull "$id"
 done
 ```
 
