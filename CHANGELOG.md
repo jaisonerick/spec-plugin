@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v17] - 2026-08-21
+
+### Changed
+- plaud: write in UTF-8 whatever console it lands on
+
 ## [Plugin: plaud v16] - 2026-08-21
 
 ### Changed
