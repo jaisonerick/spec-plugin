@@ -47,6 +47,17 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+
+# Windows hands a console whose code page is not UTF-8, and the first accented
+# name written to it ends the run on a UnicodeEncodeError. Every name here has
+# accents in it, so this is not an edge.
+def _speak_utf8():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -754,6 +765,7 @@ def cmd_gen_links(repo, _args):
 # --------------------------------------------------------------------------- entry point
 
 def main():
+    _speak_utf8()
     parser = argparse.ArgumentParser(
         prog="plaud_hub.py", description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)

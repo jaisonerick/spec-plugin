@@ -7,6 +7,11 @@
 # a syntax error, which reads as the skill being broken.
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
+# The console Windows hands a program is not UTF-8, and every name here has an
+# accent in it.
+PYTHONIOENCODING=utf-8
+export PYTHONIOENCODING
+
 for name in python3 python py; do
     command -v "$name" >/dev/null 2>&1 || continue
     "$name" -c 'import sys; raise SystemExit(sys.version_info < (3, 8))' >/dev/null 2>&1 || continue
