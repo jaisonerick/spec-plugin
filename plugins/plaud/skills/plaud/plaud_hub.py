@@ -58,7 +58,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.13.0"
+CLI_VERSION = "0.15.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -347,7 +347,18 @@ def _fetch_argv(rid, kind, repo, about=None):
 
 
 def _download(rid, kind, target, repo, about=None):
-    """Bring one content kind down as markdown to `target`. Returns the path, or None."""
+    """Bring one content kind down as markdown to `target`. Returns the path, or None.
+
+    A transcript is written straight to the file, so fetching one that is
+    already there brings the names in it up to date instead of transcribing the
+    audio again. A summary is only ever copied, and the CLI names that file
+    itself, so it comes down through a directory of its own."""
+    if kind == "transcript":
+        os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, about) +
+                       ["--into", target], check=True)
+        return target if os.path.exists(target) else None
+
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
         subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, about) +

@@ -71,6 +71,20 @@ python3 "$HUB" fetch <id>                       # into the configured directory,
 
 Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
 
+**Fetching a transcript that is already there does not transcribe it again: it brings the names in it up to date.** A voice named after the file was written is still called `SPEAKER_01` in it, and this is what goes back and fixes that. It costs a request, so it is worth doing after naming anybody.
+
+The file carries, in its front matter, which voice each name in it stands for:
+
+```
+---
+voices:
+  "Jaison Erick (NexaEdge)": [v_7f3a91]
+  "SPEAKER_02": [v_91bc04]
+---
+```
+
+**Keep that block when you file the transcript somewhere else.** It is what lets the names be corrected later; a copy without it can only be fixed by transcribing the audio again, which renumbers the voices and loses the names already given.
+
 ### Saying who was in the room
 
 The repository's `context` document is the base and covers every recording in it: what gets read out of it is who the people are and how their names, companies and systems are spelt, which the subject of one meeting barely changes. **You do not need to know what a recording is about to fetch it well.**
@@ -96,6 +110,16 @@ plaud speaker name <recording-id> SPEAKER_01 "Jaison Erick" --company NexaEdge
 ```
 
 The recording id is the one `plaud list` shows; nothing about the voices is kept on this machine, so naming one needs no file and no audio.
+
+After naming somebody, fetch the transcript again: the file gets their name where it said `SPEAKER_01`, and so does every other transcript you fetch again that they speak in.
+
+A label can hold two people, which happens when they talk over each other. Naming it teaches the average of the two voices and helps nobody, so that one is cut apart by the stretches instead:
+
+```bash
+plaud speaker teach <recording-id> --ranges divisao.json --dry-run
+```
+
+where the file lists each person and the milliseconds they speak — `[{"name": "Jaison Erick", "company": "NexaEdge", "ranges": [[262000, 271000]]}]`. Read the transcript's timestamps to build it, and confirm with the audio before running it without `--dry-run`.
 
 People are shared by everyone using the service, which is why a first name alone is refused: "Amanda" names whichever Amanda the person typing meant. A surname nobody knows is a different thing and takes `--surname-unknown`, after which the company does the identifying.
 
@@ -269,7 +293,7 @@ plaud info <id> [--json]
 
 plaud transcript <id> --context FILE|TEXT         # required: a file describing it, or the description
                       [--format md|json|txt|srt] [--language pt]
-                      [--output-dir DIR] [--identify]
+                      [--output-dir DIR] [--into FILE] [--identify]
                       [--force]                    # transcribe again instead of reusing
 plaud download <id> [--audio] [--summary] [--output-dir DIR] [--force]
 
@@ -280,6 +304,7 @@ plaud speaker name <recording-id> <label> "First Last" --company X [--surname-un
 plaud speaker rename <current> "First Last" --company X
 plaud speaker forget "First Last"
 plaud speaker enroll --company X [--dry-run] [--limit N] [--max-per-speaker N]
+plaud speaker teach <recording-id> --ranges FILE [--dry-run]   # one label, two people
 
 plaud search "text" [--limit N] [--no-cache]     # over transcripts, cached locally
 plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
@@ -291,7 +316,9 @@ plaud me
 
 `--debug`, `--json` and `--help` work on every command.
 
-`transcript` and `download` also take the filters `list` takes, plus `--all`, and then act on every recording they keep, skipping what is already on disk. That is the bulk path, and it belongs to a person who asked for a batch: prefer `fetch` or `pull`, which put one file where the repository wants it.
+`--into` writes one recording to exactly that file, and refreshes the names in it when it is already there. It is how `fetch` puts a transcript where the repository wants it.
+
+`transcript` and `download` also take the filters `list` takes, plus `--all`, and then act on every recording they keep. `download` skips what is already on disk; `transcript` refreshes the names in it. That is the bulk path, and it belongs to a person who asked for a batch: prefer `fetch` or `pull`, which put one file where the repository wants it.
 
 ## Rules
 
