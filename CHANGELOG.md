@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v15] - 2026-08-21
+
+### Changed
+- plaud: keep the CLI current, and say what describes a recording
+
 ## [Plugin: plaud v14] - 2026-08-21
 
 ### Changed
