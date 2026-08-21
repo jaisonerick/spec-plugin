@@ -47,6 +47,15 @@ Prints the resolved configuration alone, and which of the two modes applies:
 
 `filing` in the output is the document that says where a transcript belongs in this repository. **Read it before writing anything.** If it is absent, the repository has not declared a convention: look at its `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
 
+**A repository with no `.plaud.json` declares no context either, and then describing the recording is your job.** Nothing is broken and nothing needs to be created: pass `--about` on the fetch, in the same call. What it must carry is who is in the recording and what it is about, in real names:
+
+```bash
+"$HUB" fetch <id> --about "Reunião entre Jaison Erick (NexaEdge) e Amanda Destro (Aurora)
+sobre o faturamento da CERC. Termos: CCB, agenda, trava."
+```
+
+Take those names from the calendar event at the recording's time, from the repository's own documents, or from the person you are working for. **Never write a description about work other than this recording's.** What the polisher reads there is how names are spelt, and a description naming other companies makes it write those over the ones being said: a briefing about Bayer and Aurora turned NexaEdge into "DIN" and "DIGI", and naming NexaEdge fixed it.
+
 ## Finding the recording
 
 Recordings live in Plaud's cloud, named by date and topic. Narrow before listing everything:
@@ -99,6 +108,8 @@ Presentes: Éricles Bento (CERC), Luana (Vexia), Thiago Duarte (Vexia)."
 ```
 
 `--about` is added to the repository's document rather than replacing it, so the project's spellings and the room's both reach the transcript. Never invent a guest list: an attendee you guessed at becomes a name written into the record.
+
+The two reach the CLI as different flags — `--context-file` for the repository's document, `--context` for what you wrote — and `fetch` chooses between them. Nothing guesses from the value any more: a description carries a date, a date carries a slash, and a slash read as a path turned the sentence into a filename nobody could open.
 
 Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
 

@@ -58,7 +58,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.15.0"
+CLI_VERSION = "0.16.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -152,22 +152,50 @@ _BIN = None
 
 
 def plaud_bin(install=True):
-    """Path to the plaud CLI, installing it into the user's data dir if needed.
+    """Path to a plaud CLI new enough for this skill, installing one if needed.
 
-    Order: PLAUD_BIN, then whatever is on PATH, then the copy this skill manages.
+    A binary that merely exists is not enough: this skill and the CLI move
+    together, and a copy from before a flag existed fails in the middle of a
+    recording rather than at the start. So whatever is found is checked against
+    the version pinned here, and anything older is replaced by the managed copy.
+
+    PLAUD_BIN is the exception and is used as given: naming a binary is a
+    decision, and second-guessing it would defeat the point of saying so.
     Nothing here writes to the plugin's own directory, which is wiped on update.
     """
     global _BIN
     if _BIN:
         return _BIN
-    candidate = os.environ.get("PLAUD_BIN") or shutil.which("plaud")
-    if not candidate:
-        managed = os.path.join(_managed_dir(), _bin_name())
-        candidate = managed if os.path.exists(managed) else (install_cli() if install else None)
-    if not candidate:
-        sys.exit("the plaud CLI is not available. Run `plaud_hub.py install`")
-    _BIN = candidate
+
+    override = os.environ.get("PLAUD_BIN")
+    if override:
+        _BIN = override
+        return _BIN
+
+    wanted = _as_version(_resolve_version())
+    for candidate in (shutil.which("plaud"), os.path.join(_managed_dir(), _bin_name())):
+        if candidate and os.path.exists(candidate) and _version_of(candidate) >= wanted:
+            _BIN = candidate
+            return _BIN
+
+    if not install:
+        sys.exit("the plaud CLI is missing or too old. Run `plaud_hub install`")
+    _BIN = install_cli()
     return _BIN
+
+
+def _as_version(text):
+    found = re.search(r"(\d+)\.(\d+)\.(\d+)", text or "")
+    return tuple(int(part) for part in found.groups()) if found else (0, 0, 0)
+
+
+def _version_of(path):
+    """The version a binary reports, or nothing when it will not say."""
+    try:
+        out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15)
+    except Exception:
+        return (0, 0, 0)
+    return _as_version(out.stdout)
 
 
 def _managed_dir():
@@ -320,30 +348,45 @@ def _probe(rid):
 
 def _fetch_argv(rid, kind, repo, about=None):
     """The command for one content kind. A transcript is made when nobody has
-    one yet, and needs the document that settles how names are spelt; a summary
-    is only ever copied.
+    one yet, and needs what describes the recording; a summary is only ever
+    copied.
 
     `about` is what is known about this recording in particular and is not in
     the repository's document: who was in the room, what it was called in the
     calendar. It is added to that document rather than replacing it, because
-    the two know different things."""
+    the two know different things.
+
+    The CLI is told which of the two it is getting. A description is passed as
+    text and a file by its path, because a description carries a date, a date
+    carries a slash, and anything guessing between the two reads the sentence
+    as a filename."""
     if kind == "summary":
         return ["download", rid, "--summary"]
-    if about and not repo.context:
-        return ["transcript", rid, "--format", "md", "--context", about]
-    if not repo.context:
-        sys.exit(
-            f'no context document configured. Add "context" to {CONFIG_NAME}, '
-            "pointing at a file that describes this work: a briefing, an agenda, "
-            "a list of the people and companies involved. It is what settles how "
-            "their names are spelt, and transcripts drift apart without it."
-        )
-    if not os.path.exists(repo.context):
+
+    if repo.context and not os.path.exists(repo.context):
         sys.exit(f"the context document {repo.rel(repo.context)} does not exist")
-    if not about:
-        return ["transcript", rid, "--format", "md", "--context", repo.context]
-    combined = open(repo.context, encoding="utf-8").read().rstrip() + "\n\n" + about.strip() + "\n"
-    return ["transcript", rid, "--format", "md", "--context", combined]
+
+    if repo.context and not about:
+        return ["transcript", rid, "--format", "md", "--context-file", repo.context]
+
+    if repo.context:
+        written = open(repo.context, encoding="utf-8").read().rstrip() + "\n\n" + about.strip() + "\n"
+        return ["transcript", rid, "--format", "md", "--context", written]
+
+    if about:
+        return ["transcript", rid, "--format", "md", "--context", about.strip()]
+
+    sys.exit(
+        "nothing describes this recording, and a transcript needs it: it is what "
+        "settles how the names in it are spelt.\n"
+        "  Pass it now:   --about \"Reunião X entre Fulano (Empresa) e Beltrano "
+        "(Empresa); assunto\"\n"
+        f"  Or for good:   set \"context\" in {CONFIG_NAME} to a file describing "
+        "this work — a briefing, an agenda, the people and companies involved.\n"
+        "Name the people and companies that are actually in the recording. A "
+        "description about other work makes the polisher write those names over "
+        "the ones being said."
+    )
 
 
 def _download(rid, kind, target, repo, about=None):
