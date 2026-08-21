@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v13] - 2026-08-21
+
+### Changed
+- plaud: fetch a transcript again to bring its names up to date
+
 ## [Plugin: miro-board v2] - 2026-08-20
 
 ### Changed
