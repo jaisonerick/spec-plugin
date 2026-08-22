@@ -80,7 +80,16 @@ When several could be the one, show the candidates with date and duration and le
 
 **A recording without a transcript is transcribed on the way.** `fetch` finishes the job whichever state the recording is in, and takes minutes rather than seconds when there is nothing on record yet. Never offer the user a choice about that or ask them to weigh it: finishing the transcript is what the tool is for.
 
-**A recording is transcribed once.** The service keeps what it decoded, so fetching the same recording again — to another path, after the file was filed elsewhere, on another machine — comes back in seconds and with the names as they are known today. Nothing is decoded twice unless somebody asks for it, and asking is what `--force` on the CLI is for.
+**A recording is transcribed once.** The service keeps what it decoded, so fetching the same recording again — to another path, after the file was filed elsewhere, on another machine — comes back in seconds and with the names as they are known today.
+
+Two flags override that, and both cost a GPU pass, so neither is a default:
+
+```bash
+"$HUB" fetch <id> --force                  # the transcript on record is wrong; make it again
+"$HUB" fetch <id> --language pt            # it came back in the wrong language; settle it
+```
+
+`--language` is the way out when a meeting comes back translated: Whisper renders rather than mis-spells when it reads the language wrong, so the file is fluent and entire in a language nobody spoke, and nothing in it says a decision was made. Settling the language also tells the service that what it has is not what to hand back.
 
 Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
 

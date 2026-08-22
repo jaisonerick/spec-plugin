@@ -69,7 +69,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.18.1"
+CLI_VERSION = "0.19.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -357,7 +357,7 @@ def _probe(rid):
     }
 
 
-def _fetch_argv(rid, kind, repo, context=None, context_file=None):
+def _fetch_argv(rid, kind, repo, context=None, context_file=None, force=False, language=None):
     """The command for one content kind. A transcript is made when nobody has
     one yet, and needs what describes the recording; a summary is only ever
     copied.
@@ -373,19 +373,31 @@ def _fetch_argv(rid, kind, repo, context=None, context_file=None):
     if kind == "summary":
         return ["download", rid, "--summary"]
 
+    # A transcript is made once and handed back after that. Deciding to make it
+    # again is the caller's alone, because only a caller knows the one on
+    # record is wrong: it costs a GPU pass and separates the voices afresh.
+    again = ["--force"] if force else []
+    # Whisper translates rather than mis-spells when it reads the language
+    # wrong, so a meeting comes back fluent and entire in another one, with
+    # nothing in the file saying a decision was made. Settling it is the way
+    # out, and it makes the service decode again rather than hand back the
+    # transcript it has in the language nobody asked for.
+    if language:
+        again += ["--language", language]
+
     document = context_file or repo.context
     if document and not os.path.exists(document):
         sys.exit(f"the context document {repo.rel(document)} does not exist")
 
     if document and not context:
-        return ["transcript", rid, "--format", "md", "--context-file", document]
+        return ["transcript", rid, "--format", "md", "--context-file", document] + again
 
     if document:
         written = open(document, encoding="utf-8").read().rstrip() + "\n\n" + context.strip() + "\n"
-        return ["transcript", rid, "--format", "md", "--context", written]
+        return ["transcript", rid, "--format", "md", "--context", written] + again
 
     if context:
-        return ["transcript", rid, "--format", "md", "--context", context.strip()]
+        return ["transcript", rid, "--format", "md", "--context", context.strip()] + again
 
     sys.exit(
         "nothing describes this recording, and a transcript needs it: it is what "
@@ -400,7 +412,7 @@ def _fetch_argv(rid, kind, repo, context=None, context_file=None):
     )
 
 
-def _download(rid, kind, target, repo, context=None, context_file=None):
+def _download(rid, kind, target, repo, context=None, context_file=None, force=False, language=None):
     """Bring one content kind down as markdown to `target`. Returns the path, or None.
 
     A transcript is written straight to the file, so fetching one that is
@@ -409,13 +421,13 @@ def _download(rid, kind, target, repo, context=None, context_file=None):
     itself, so it comes down through a directory of its own."""
     if kind == "transcript":
         os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
-        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file, force, language) +
                        ["--into", target], check=True)
         return target if os.path.exists(target) else None
 
     tmp = tempfile.mkdtemp(prefix="plaud-")
     try:
-        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file) +
+        subprocess.run([plaud_bin()] + _fetch_argv(rid, kind, repo, context, context_file, force, language) +
                        ["--output-dir", tmp], check=True)
         produced = [f for f in sorted(os.listdir(tmp)) if f.endswith(".md")]
         if not produced:
@@ -591,7 +603,7 @@ def cmd_fetch(repo, args):
     # No gate on whether Plaud has a transcript: `transcript` makes one when
     # nobody has, which is the only way one is made now.
     transcript, summary = _targets(repo, meta, args.to, args.summary_to)
-    transcript = _download(args.id, "transcript", transcript, repo, args.context, args.context_file)
+    transcript = _download(args.id, "transcript", transcript, repo, args.context, args.context_file, args.force, args.language)
     if not transcript:
         sys.exit(f"plaud produced no transcript file for {args.id}")
     if summary and meta["is_summary"]:
@@ -697,7 +709,7 @@ def cmd_pull(repo, args):
         sys.exit(f"unknown recording {args.id}. Run `refresh` first")
     slug = _slug(rec)
     transcript = _download(args.id, "transcript", os.path.join(repo.transcripts, f"{slug}.md"), repo,
-                              args.context, args.context_file)
+                              args.context, args.context_file, args.force, args.language)
     rec["transcript_path"] = repo.rel(transcript) if transcript else None
     if rec.get("is_summary"):
         summary = _download(args.id, "summary", os.path.join(repo.summaries, f"{slug}.md"), repo)
@@ -781,6 +793,8 @@ def main():
     p.add_argument("--summary-to", help="destination file for the summary, if you want it")
     p.add_argument("--context", help="what this recording is: who was there, what it is about, in real names. Added to the repository's context document rather than replacing it")
     p.add_argument("--context-file", help="a file describing this recording, used instead of the repository's context document")
+    p.add_argument("--force", action="store_true", help="transcribe the audio again instead of taking the transcript the service already has")
+    p.add_argument("--language", help="settle the language (pt, en, es...) instead of letting the audio decide, which is the way out when a meeting came back translated")
     # Accepted and ignored: fetch transcribes by itself now, and an agent
     # working from an older copy of the skill still passes this.
     p.add_argument("--generate", action="store_true", help=argparse.SUPPRESS)
@@ -797,6 +811,8 @@ def main():
     p.add_argument("--file", help="curation: where it was filed, relative to the repository root")
     p.add_argument("--context", help="what this recording is: who was there, what it is about, in real names. Added to the repository's context document rather than replacing it")
     p.add_argument("--context-file", help="a file describing this recording, used instead of the repository's context document")
+    p.add_argument("--force", action="store_true", help="transcribe the audio again instead of taking the transcript the service already has")
+    p.add_argument("--language", help="settle the language (pt, en, es...) instead of letting the audio decide, which is the way out when a meeting came back translated")
     p.set_defaults(fn=cmd_pull)
 
     p = sub.add_parser("query", help="run a read-only SQL query against the index")
