@@ -219,7 +219,9 @@ At the repository root. `context` is required to bring a transcript in; everythi
 
 ## Setup
 
-**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli) under `~/.local/share/plaud-cli/bin`, matched to the platform and checked against the release's sha256. A `plaud` already on PATH always wins, so an existing install is never disturbed. If that one is too old to reach the transcription service, `doctor` says so rather than failing obscurely halfway through a recording.
+**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli), matched to the platform and checked against the release's sha256.
+
+**One binary, where the shell finds it.** A `plaud` already on PATH is the one kept up to date: when it falls behind the pinned version, that file is replaced, rather than a second copy installed beside it — two that differ is how an old one goes on being the one that answers. With nothing on PATH, it is installed to `~/.local/bin` (`%LOCALAPPDATA%\plaud` on Windows), so the person whose machine it is can type the name too. Windows has a PATH of the user's own and it is set; elsewhere PATH is built by files somebody else manages, so the line to add is printed instead of edited in.
 
 ## Windows
 

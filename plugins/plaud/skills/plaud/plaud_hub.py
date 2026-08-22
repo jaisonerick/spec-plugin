@@ -212,9 +212,17 @@ def plaud_bin(install=True):
 
 
 def _managed_copy(wanted, install):
-    """The copy this skill keeps, for a machine with no plaud of its own."""
+    """The copy this skill keeps, for a machine with no plaud of its own.
+
+    It goes somewhere the shell looks, so the person whose machine it is can
+    type the name too.
+    """
     managed = os.path.join(_managed_dir(), _bin_name())
     _sweep_old(managed)
+    legacy = os.path.join(_legacy_dir(), _bin_name())
+    if os.path.exists(legacy) and not os.path.exists(managed):
+        os.makedirs(_managed_dir(), exist_ok=True)
+        os.replace(legacy, managed)
     if os.path.exists(managed) and _version_of(managed) >= wanted:
         return managed
     if not install:
@@ -224,14 +232,15 @@ def _managed_copy(wanted, install):
 
 def _drop_managed_copy(managed, in_use):
     """Two binaries that differ is how an old one goes on being the one that
-    runs, so the one nobody reaches for is removed once the other is current."""
-    if managed == in_use or not os.path.exists(managed):
-        return
-    try:
-        os.remove(managed)
-        print(f"removed {managed}, now that {in_use} is the one kept up to date.", file=sys.stderr)
-    except OSError:
-        pass
+    runs, so the ones nobody reaches for go once the other is current."""
+    for spare in (managed, os.path.join(_legacy_dir(), _bin_name())):
+        if spare == in_use or not os.path.exists(spare):
+            continue
+        try:
+            os.remove(spare)
+            print(f"removed {spare}, now that {in_use} is the one kept up to date.", file=sys.stderr)
+        except OSError:
+            pass
 
 
 def _old_path(target):
@@ -261,8 +270,60 @@ def _version_of(path):
 
 
 def _managed_dir():
+    """Where a binary of our own goes: somewhere typing `plaud` finds it.
+
+    A directory only this skill knows about is how a machine ends up with a
+    plaud that answers the skill and nothing that answers the person.
+    """
+    if platform.system() == "Windows":
+        base = os.environ.get("LOCALAPPDATA") or os.path.join(
+            os.path.expanduser("~"), "AppData", "Local")
+        return os.path.join(base, "plaud")
+    return os.path.join(os.path.expanduser("~"), ".local", "bin")
+
+
+def _legacy_dir():
+    """Where this skill used to put it, out of reach of the shell."""
     base = os.environ.get("XDG_DATA_HOME") or os.path.join(os.path.expanduser("~"), ".local", "share")
     return os.path.join(base, "plaud-cli", "bin")
+
+
+def _on_path(directory):
+    here = os.path.normcase(os.path.normpath(directory))
+    return any(
+        os.path.normcase(os.path.normpath(entry)) == here
+        for entry in os.environ.get("PATH", "").split(os.pathsep)
+        if entry
+    )
+
+
+def _put_on_path(directory):
+    """Make the shell find what was just installed.
+
+    Windows keeps a PATH of the user's own, which is a setting and safe to
+    write. Everywhere else PATH is built by files somebody else manages — a
+    dotfile repository, a profile under version control — so this says what to
+    add rather than editing them.
+    """
+    if _on_path(directory):
+        return
+
+    if platform.system() != "Windows":
+        print(f"add {directory} to your PATH to type `plaud` yourself:\n"
+              f'  export PATH="{directory}:$PATH"', file=sys.stderr)
+        return
+
+    script = (
+        "$d = [Environment]::GetEnvironmentVariable('Path','User'); "
+        f"if ($d -notlike '*{directory}*') {{ "
+        f"[Environment]::SetEnvironmentVariable('Path', ($d.TrimEnd(';') + ';{directory}'), 'User') }}"
+    )
+    try:
+        subprocess.run(["powershell", "-NoProfile", "-Command", script], check=True,
+                       capture_output=True, timeout=30)
+        print(f"added {directory} to your PATH; a new terminal will find `plaud`.", file=sys.stderr)
+    except Exception:
+        print(f"add {directory} to your PATH to type `plaud` yourself.", file=sys.stderr)
 
 
 def _bin_name():
@@ -323,6 +384,7 @@ def install_cli(target=None):
     os.chmod(tmp, 0o755)
     _put_in_place(tmp, target)
     _unblock(target)
+    _put_on_path(os.path.dirname(target))
     return target
 
 
