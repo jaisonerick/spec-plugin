@@ -1,7 +1,7 @@
 {
   "name": "plaud",
   "description": "Turn Plaud.ai voice recordings into text inside the repository you are working in: find the recording, transcribe it, bring the transcript down with the speakers it recognises already named. Where that transcript then gets filed is read from the repository's own .plaud.json, never assumed, so the same skill serves a knowledge base and a client project without knowing either.",
-  "version": "v25",
+  "version": "v26",
   "author": {
     "name": "Jaison Erick",
     "url": "https://github.com/jaisonerick"
