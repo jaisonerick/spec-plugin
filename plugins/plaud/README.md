@@ -11,7 +11,7 @@ It stops at the transcript. Turning it into a note, naming the file, choosing wh
 /plugin install plaud@nexaedge-marketplace
 ```
 
-Python 3 is the only thing that has to be installed. The Plaud client is a single Go binary, and if one is not already on PATH the plugin fetches the pinned release of [`plaud-cli`](https://github.com/jaisonerick/plaud-cli) into `~/.local/share/plaud-cli/bin` on first use, matched to the platform and verified against the release's sha256. No sudo, no PATH changes, and nothing written inside the plugin directory, which is replaced on every update.
+Python 3 is the only thing that has to be installed, and it does one job: put the CLI on the machine. Everything else is [`plaud-cli`](https://github.com/jaisonerick/plaud-cli), a single Go binary. A `plaud` already on PATH is the one kept up to date; with nothing on PATH the pinned release is fetched into `~/.local/bin` (`%LOCALAPPDATA%\plaud` on Windows), matched to the platform and verified against the release's sha256, so the person whose machine it is can type the name too. No sudo, and nothing written inside the plugin directory, which is replaced on every update.
 
 That binary is not code-signed. SmartScreen reacts by naming the publisher as unknown and offering *Run anyway*; the installer clears the download tag it objects to, so that normally only appears for a copy fetched by hand. **Smart App Control** is stricter and simply refuses: no *Run anyway*, no per-app exception, and the only way through is turning it off in Windows Security, which recent Windows lets you turn back on.
 
@@ -42,18 +42,27 @@ The resulting token is a JWT valid for months and nothing renews it, so `doctor`
 
 ## Configure the repository
 
-`.plaud.json` at the repository root. Every key is optional, and so is the file.
+`.plaud.json` at the repository root says where transcripts go, what they are called, what describes them and where they belong afterwards. It is found from the working directory upwards, so it works from anywhere inside the repository. The file is optional, and so is every key in it.
 
 ```json
 {
-  "filing": "docs/meeting-notes.md",
-  "scratch": "workspace/plaud"
+  "context": "contexto/briefing.md",
+  "filing": ".agents/skills/meeting-notes/SKILL.md",
+  "scratch": "workspace/plaud",
+  "language": "pt",
+  "name": "{date}-{slug}.md",
+  "front_matter": { "type": "Transcript" },
+  "profiles": {
+    "cerc": { "tag": "PPFX - Amanda", "dest": "reunioes/{year}" }
+  }
 }
 ```
 
-`filing` points at the document that says where a transcript belongs here. It is the one key worth setting even in the simplest repository, because it is what stops the agent from inventing a destination. `scratch` is where a fetched transcript lands by default; point it at a git-ignored directory when transcripts should not be committed as they arrive.
+`context` is a file describing the work: the people, the companies, how their names are spelt. It is what makes two transcripts of the same people agree, and a thin one is better than none. `filing` points at the document that says where a transcript belongs here, which is what stops the agent inventing a destination. `scratch` is where a transcript lands when nothing names one; point it at a git-ignored directory when transcripts should not be committed as they arrive.
 
-Adding `hub` turns on catalog mode:
+`name` and `dest` are templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}` and `{short_id}`. A profile is a named set of those keys plus the tag that selects recordings for it, which is what makes `plaud sync --profile cerc` a single instruction.
+
+Adding `hub` turns on the catalog:
 
 ```json
 {
@@ -64,24 +73,26 @@ Adding `hub` turns on catalog mode:
 }
 ```
 
-The hub directory then holds `catalog.jsonl` (source of truth, git-tracked, one JSON object per recording), a git-ignored sqlite index rebuilt from it, and the transcripts pulled so far. Each recording carries a `status` (`pending`, `transcribed`, `filed` or `excluded`), which is what keeps the same call from being processed twice. Curation survives every refresh; only the Plaud-side fields are overwritten.
+That directory then holds `catalog.jsonl` — the source of truth, git-tracked, one JSON object per recording — and the transcripts pulled so far. Each recording carries a `status` (`pending`, `transcribed`, `filed` or `excluded`), which is what keeps the same call from being processed twice. Curation survives every refresh; only the Plaud-side fields are overwritten.
 
 `utc_offset` (hours from UTC) fixes the timezone of recording timestamps when the machine's own is not the right one.
 
 ## Use
 
-Ask Claude to process a recording. Claude resolves the engine through `${CLAUDE_PLUGIN_ROOT}`; to drive it by hand, the installed copy sits under `~/.claude/plugins/cache/<marketplace>/plaud/<version>/skills/plaud/plaud_hub`, where `<version>` moves on every update. That entry point is a shell script that finds this machine's Python 3 and runs the engine with it.
+Ask Claude to process a recording. It resolves the installer through `${CLAUDE_PLUGIN_ROOT}`, which prints the path to a current binary; after that everything is the CLI.
 
 ```bash
-python3 "$HUB" doctor                                            # CLI, auth, repository setup
-python3 "$HUB" config                                            # resolved setup and mode
-python3 "$HUB" fetch <id> --to comms/2026-08-06-call/transcript.md
-python3 "$HUB" fetch <id>                                        # transcribing it first if needed
+PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
 
-python3 "$HUB" refresh && python3 "$HUB" build                   # catalog mode
-python3 "$HUB" pull <id> --project acme --file comms/2026-08-06-call/
-python3 "$HUB" query "SELECT id, filename FROM unfiled"          # no sqlite3 binary needed
-python3 "$HUB" status
+"$PLAUD" doctor                                      # both sign-ins and this repository
+"$PLAUD" config                                      # what .plaud.json resolved to
+"$PLAUD" fetch <id>                                  # into where this repository puts transcripts
+"$PLAUD" fetch <id> --to comms/2026-08-06-call/transcript.md
+"$PLAUD" sync --profile cerc --dry-run               # a whole set at once
+
+"$PLAUD" catalog refresh                             # catalog mode
+"$PLAUD" catalog list --unfiled --min-minutes 5
+"$PLAUD" catalog set <id> project=acme status=filed
 ```
 
-A recording without a transcript is transcribed on the way through, which takes minutes rather than seconds. Speakers the service recognises come back named as `First Last (Company)`. Nothing here deletes anything from the account.
+A recording without a transcript is transcribed on the way through, which takes minutes rather than seconds; one that has been through the service already comes back in seconds. Speakers the service recognises come back named as `First Last (Company)`, and fetching a transcript that is already on disk brings those names up to date rather than decoding anything. Nothing here deletes anything from the account.

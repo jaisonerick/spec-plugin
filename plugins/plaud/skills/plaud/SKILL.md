@@ -1,7 +1,7 @@
 ---
 name: plaud
 description: >-
-  Work with Plaud.ai voice recordings: find a recording, activate its transcription, bring the transcript into the current repository, and optionally keep a catalog of what came in. Where the transcript then gets filed is read from the repository's own configuration, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
+  Work with Plaud.ai voice recordings: find a recording, bring its transcript into the current repository, keep a set of recordings in sync, and say who is speaking. Where the transcript lands, what it is called and what describes it are read from the repository's own `.plaud.json`, never assumed. Triggers "plaud", "gravação", "recording", "transcrição", "transcript", "processa essa call", "essa reunião foi gravada".
 allowed-tools:
   - Bash
   - Read
@@ -14,57 +14,47 @@ allowed-tools:
 
 Plaud.ai records meetings and calls; this skill is how that audio becomes text inside a repository.
 
-It stops at the transcript. Turning it into a note, filing it, naming the file, choosing the language: that is the repository's business, and this skill reads it from the repository rather than assuming it. Do not invent a destination.
+Everything is the `plaud` CLI. It talks to Plaud, transcribes, recognises voices, and reads what the repository declares about where a transcript belongs. Your job is to point it at the right recording, make sure the repository declares what it needs, and hand the result to whatever files it.
 
-**Python 3 is the only thing that has to be there.** The Plaud client is a single Go binary, and if one is not already on PATH the engine installs the pinned release into the user's data directory on first use: no sudo, no PATH changes, nothing written inside the plugin. That needs network on the first run, and an account that is signed in.
-
-**There are two sign-ins, and they answer different questions** (see *Signing the user in*). The Plaud account says which recordings can be read; a Google account says whether anything can be transcribed, because transcription runs on a service shared between the domains it serves. Being signed in to one and not the other is the confusing half-state `doctor` names explicitly.
-
-**Signing in is your job, not the user's.** Assume the person you are working for will never run a command: walk them through it in the conversation, asking for an emailed code and never for a password.
+## Get the CLI
 
 ```bash
-HUB="${CLAUDE_PLUGIN_ROOT}/skills/plaud/plaud_hub"
+PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
 ```
 
-`$HUB` runs itself: it finds this machine's Python 3 — `python3`, `python` or the `py` launcher — and runs the engine with it, so nothing here assumes a name that a given machine may not have.
+That prints the path to a current binary, installing one if the machine has none. It is the only Python here, it needs network on the first run, and it puts the binary somewhere the shell looks so the person whose machine it is can type `plaud` too. Use `"$PLAUD"` in every command below, since a freshly installed directory is not on the PATH of a shell that is already running.
 
 ## Start by checking the ground
 
 ```bash
-"$HUB" doctor
+"$PLAUD" doctor
 ```
 
-One report covering the CLI, both sign-ins, and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem. `NOT AUTHENTICATED` on the Plaud line and `NOT SIGNED IN` on the service line both send you to *Signing the user in*, and neither is a blocker to hand back.
+One report covering both sign-ins and how this repository is configured. When something is missing this is what says which one, so run it before concluding that a recording is the problem.
+
+**There are two sign-ins and they answer different questions.** The Plaud account says which recordings can be read; a Google account says whether anything can be transcribed, because transcription runs on a shared service. Being signed in to one and not the other fails halfway through a task, which is why `doctor` reports them separately. `NOT AUTHENTICATED` and `NOT SIGNED IN` both send you to *Signing the user in*, and neither is a blocker to hand back.
+
+**Signing in is your job, not the user's.** Assume the person you are working for will never open a terminal: walk them through it in the conversation, asking for an emailed code and never for a password.
+
+## What the repository declares
 
 ```bash
-"$HUB" config
+"$PLAUD" config
 ```
 
-Prints the resolved configuration alone, and which of the two modes applies:
+`.plaud.json` at the repository's root says where transcripts go, what they are called, what describes them and where they belong afterwards. It is found from the working directory upwards, so it works from anywhere inside the repository.
 
-- **ad-hoc**: no catalog. Recordings are fetched one at a time, on demand, and nothing about them is stored. This is the right mode for a repository that only wants the occasional transcript.
-- **catalog**: the repository keeps an index of every recording it knows about: what it is, whether it has been transcribed, where it was filed. Worth it when the set of recordings is itself something to keep track of.
+**A repository with no `.plaud.json` is not broken, and it is not yours to fix silently.** Transcripts can still be fetched into a path named on the call. But a repository that will take in more than one recording should declare itself, and writing that file is part of this skill — see *Configuring a repository*.
 
-`filing` in the output is the document that says where a transcript belongs in this repository. **Read it before writing anything.** If it is absent, the repository has not declared a convention: look at its `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
-
-**A repository with no `.plaud.json` declares no context either, and then describing the recording is your job.** Nothing is broken and nothing needs to be created: pass `--context` on the fetch, in the same call. What it must carry is who is in the recording and what it is about, in real names:
-
-```bash
-"$HUB" fetch <id> --context "Reunião entre Jaison Erick (NexaEdge) e Amanda Destro (Aurora)
-sobre o faturamento da CERC. Termos: CCB, agenda, trava."
-```
-
-Take those names from the calendar event at the recording's time, from the repository's own documents, or from the person you are working for. **Never write a description about work other than this recording's.** What the polisher reads there is how names are spelt, and a description naming other companies makes it write those over the ones being said: a briefing about Bayer and Aurora turned NexaEdge into "DIN" and "DIGI", and naming NexaEdge fixed it.
+`filing` in the output is the document saying where a transcript belongs here. **Read it before writing anything.** If it is absent, look at the repository's `CLAUDE.md`/`AGENTS.md`, and if that settles nothing, ask.
 
 ## Finding the recording
 
-Recordings live in Plaud's cloud, named by date and topic. Narrow before listing everything:
-
 ```bash
-plaud list --since 2026-08-01 --limit 20        # recent
-plaud list --search "orçamento" --json          # by name
-plaud search "texto dito na reunião"            # inside the transcripts already made
-plaud info <id>                                 # one recording: duration, what content exists
+"$PLAUD" list --since 2026-08-01 --limit 20     # recent
+"$PLAUD" list --search "orçamento" --json       # by name
+"$PLAUD" list --tag "PPFX - Amanda"             # by tag
+"$PLAUD" info <id>                              # one recording
 ```
 
 When several could be the one, show the candidates with date and duration and let the user pick, rather than guessing from the title.
@@ -72,57 +62,57 @@ When several could be the one, show the candidates with date and duration and le
 ## Bringing one transcript in
 
 ```bash
-"$HUB" fetch <id> --to comms/2026-08-06-reuniao-x/transcript.md
-"$HUB" fetch <id>                       # into the configured directory, slug-named
+"$PLAUD" fetch <id>
+"$PLAUD" fetch <id> --to comms/2026-08-06/transcript.md
 ```
 
-`--to` ending in `.md` is the transcript's file; anything else is a directory, and the summary lands beside it (`--summary-to` puts it somewhere specific).
+With no `--to` it lands where the repository puts transcripts, under the name the repository uses. `--to` ending in a file extension is the transcript's exact file; anything else is a directory, and the repository's naming still applies. The summary comes along when Plaud has one.
 
-**A recording without a transcript is transcribed on the way.** `fetch` finishes the job whichever state the recording is in, and takes minutes rather than seconds when there is nothing on record yet. Never offer the user a choice about that or ask them to weigh it: finishing the transcript is what the tool is for.
+**A recording without a transcript is transcribed on the way.** `fetch` finishes the job whichever state the recording is in, and takes minutes rather than seconds when the service has not decoded it yet. Never offer the user a choice about that or ask them to weigh it: finishing the transcript is what the tool is for.
 
-**A recording is transcribed once.** The service keeps what it decoded, so fetching the same recording again — to another path, after the file was filed elsewhere, on another machine — comes back in seconds and with the names as they are known today.
+**A recording is transcribed once.** The service keeps what it decoded, so fetching the same recording again — to another path, on another machine, after the file was filed elsewhere — comes back in seconds, and with the names as they are known today.
 
 Two flags override that, and both cost a GPU pass, so neither is a default:
 
 ```bash
-"$HUB" fetch <id> --force                  # the transcript on record is wrong; make it again
-"$HUB" fetch <id> --language pt            # it came back in the wrong language; settle it
+"$PLAUD" fetch <id> --force          # the transcript on record is wrong; make it again
+"$PLAUD" fetch <id> --language pt    # it came back in the wrong language; settle it
 ```
 
-`--language` is the way out when a meeting comes back translated: Whisper renders rather than mis-spells when it reads the language wrong, so the file is fluent and entire in a language nobody spoke, and nothing in it says a decision was made. Settling the language also tells the service that what it has is not what to hand back.
+`--language` is the way out when a meeting comes back translated: Whisper renders rather than mis-spells when it reads the language wrong, so the file is fluent and entire in a language nobody spoke, with nothing in it to say a decision was made.
 
-Language auto-detects, speakers are separated, and the ones the service recognises come back named: a line reads `**Jaison Erick (NexaEdge)** (00:00:09):` rather than `SPEAKER_01`. A summary comes along only when Plaud already has one.
+**Fetching a transcript that is already there does not transcribe it again: it brings the names in it up to date.** A voice named after the file was written is still `SPEAKER_01` in it, and this is what goes back and fixes that. It costs a request, so it is worth doing after naming anybody.
 
-**Fetching a transcript that is already there does not transcribe it again: it brings the names in it up to date.** A voice named after the file was written is still called `SPEAKER_01` in it, and this is what goes back and fixes that. It costs a request, so it is worth doing after naming anybody.
+## Bringing in a set
 
-The file carries, in its front matter, which voice each name in it stands for:
-
-```
----
-voices:
-  "Jaison Erick (NexaEdge)": [v_7f3a91]
-  "SPEAKER_02": [v_91bc04]
----
+```bash
+"$PLAUD" sync --profile cerc --dry-run
+"$PLAUD" sync --profile cerc
+"$PLAUD" sync --tag "PPFX - Amanda" --since 2026-08-01
 ```
 
-**Keep that block when you file the transcript somewhere else.** It is what lets the names be corrected later; a copy without it can only be fixed by transcribing the audio again, which renumbers the voices and loses the names already given.
+A profile in `.plaud.json` names both the tag that selects recordings and where they are filed, so `--profile cerc` is the whole instruction. Running it twice decodes nothing the second time: what says a recording is here is the file at the destination.
 
-### Saying who was in the room
+It does not leave the transcripts already here alone, though. Every one in range is asked about again, and **the ones whose turns changed name are listed at the end of the run** — that is how a name settled since reaches a file that was written before it. `--only-new` skips that half.
+
+**Always `--dry-run` a sync first and show the user the list.** A batch is a decision somebody should make on purpose, not because transcribing is expensive.
+
+## Saying who was in the room
 
 The repository's `context` document is the base and covers every recording in it: what gets read out of it is who the people are and how their names, companies and systems are spelt, which the subject of one meeting barely changes. **You do not need to know what a recording is about to fetch it well.**
 
-What that document cannot know is who was in this particular room. The calendar can, and knows it before anybody has heard the audio: the event at the recording's time carries a title and a guest list of real names and email domains, which is exactly the material a name is corrected from. Look it up when the recording involves people the repository does not name — an outside company, a first meeting, a recording nobody can place — and pass what you find:
+What that document cannot know is who was in this particular room. The calendar can, and knows it before anybody has heard the audio: the event at the recording's time carries a title and a guest list of real names and email domains, which is exactly the material a name is corrected from. Look it up when the recording involves people the repository does not name, and pass what you find:
 
 ```bash
-"$HUB" fetch <id> --context "Calendário: CERC x Vexia, esteira de pagamentos.
+"$PLAUD" fetch <id> --context "Calendário: CERC x Vexia, esteira de pagamentos.
 Presentes: Éricles Bento (CERC), Luana (Vexia), Thiago Duarte (Vexia)."
 ```
 
-**`--context` and `--context-file` are the CLI's own flags and mean the same thing here**, with one addition: a `--context` written for a single recording is **added** to the repository's document rather than replacing it, so the project's spellings and the room's both reach the transcript. `--context-file` replaces that document, which is how one recording is described by a paper of its own.
+**`--context` is added to the repository's document, not swapped for it**, so the project's spellings and the room's both reach the transcript. `--context-file` is the other way: it stands in for that document, which is how one recording described by a paper of its own is fetched.
 
-Never invent a guest list: an attendee you guessed at becomes a name written into the record.
+**Never write a description about work other than this recording's.** What the polisher reads there is how names are spelt, and a description naming other companies makes it write those over the ones being said: a briefing about Bayer and Aurora turned NexaEdge into "DIN" and "DIGI", and naming NexaEdge fixed it.
 
-Which of the two you pass is said, never guessed from the value: a description carries a date, a date carries a slash, and a slash read as a path turned the sentence into a filename nobody could open.
+Never invent a guest list either: an attendee you guessed at becomes a name written into the record.
 
 Then read the file. A long transcript is raw speech: expect false starts, crosstalk and names spelled by ear, and treat what people said as claims rather than facts.
 
@@ -131,18 +121,31 @@ Then read the file. A long transcript is raw speech: expect false starts, crosst
 Transcripts come back with the voices the service recognises already named, as `First Last (Company)`. A voice it has never heard stays `SPEAKER_01`, and naming it is what teaches it:
 
 ```bash
-plaud speaker list                       # everyone it knows
-plaud speaker name <recording-id> SPEAKER_01 "Jaison Erick" --company NexaEdge
+"$PLAUD" speaker list
+"$PLAUD" speaker name <recording-id> SPEAKER_01 "Jaison Erick" --company NexaEdge
 ```
 
-The recording id is the one `plaud list` shows; nothing about the voices is kept on this machine, so naming one needs no file and no audio.
+The recording id is the one `list` shows; nothing about the voices is kept on this machine, so naming one needs no file and no audio.
 
-After naming somebody, fetch the transcript again: the file gets their name where it said `SPEAKER_01`, and so does every other transcript you fetch again that they speak in.
+After naming somebody, fetch the transcript again — or run `sync`, which does it for everything at once and says which files changed.
+
+The file carries, in its front matter, which voice each name in it stands for, and the recording it came from:
+
+```
+---
+recording: bf1ee96b1f14cff5c2d71bf6fda842f0
+voices:
+  "Jaison Erick (NexaEdge)": [v_7f3a91]
+  "SPEAKER_02": [v_91bc04]
+---
+```
+
+**Keep that block when you file the transcript somewhere else.** It is what lets the names be corrected later; a copy without it can only be fixed by transcribing the audio again, which renumbers the voices and loses the names already given.
 
 A label can hold two people, which happens when they talk over each other. Naming it teaches the average of the two voices and helps nobody, so that one is cut apart by the stretches instead:
 
 ```bash
-plaud speaker teach <recording-id> --ranges divisao.json --dry-run
+"$PLAUD" speaker teach <recording-id> --ranges divisao.json --dry-run
 ```
 
 where the file lists each person and the milliseconds they speak — `[{"name": "Jaison Erick", "company": "NexaEdge", "ranges": [[262000, 271000]]}]`. Read the transcript's timestamps to build it, and confirm with the audio before running it without `--dry-run`.
@@ -153,75 +156,62 @@ People are shared by everyone using the service, which is why a first name alone
 
 ## Handing off
 
-Follow the `filing` document. If the repository has its own skill for meeting notes or for filing documents, use it, since that skill owns the destination, the naming and the structure, and this one has already done its part by putting readable text on disk.
+Follow the `filing` document. If the repository has its own skill for meeting notes or for filing documents, use it: that skill owns the destination, the naming and the structure, and this one has already done its part by putting readable text on disk.
 
 Say where the transcript landed and where the note went, so the next reader can follow the thread back to the source.
 
-## Catalog mode
+## Configuring a repository
 
-Only when `config` reports a hub. The catalog is `catalog.jsonl` (source of truth, git-tracked, one JSON object per recording), a git-ignored sqlite index rebuilt from it, and the raw transcripts pulled so far.
-
-```bash
-"$HUB" refresh     # merge `plaud list` + tags into the catalog; curation is preserved
-"$HUB" build       # recompile the sqlite index from the catalog
-"$HUB" status      # counts by status
-"$HUB" pull <id>   # fetch into the raw store and record the paths
-"$HUB" set <id> project=<label> path=<repo-relative> status=filed
-"$HUB" gen-links   # regenerate the page listing what still needs transcription
-```
-
-`status` is the manifest, so check it before processing a recording twice: `pending` (no transcript yet), `transcribed` (has one, not filed), `filed` (mapped to a destination through `path` and/or `repo`), `excluded` (out of scope for this repository). The first two are recomputed on every refresh; the last two are sticky, and a refresh never touches them or any other curation field.
-
-Ad-hoc queries go through `query`, which is read-only and needs no `sqlite3` binary. The index has a `pending_transcription` and an `unfiled` view:
-
-```bash
-"$HUB" query "SELECT id, recorded_at, duration_min, filename FROM unfiled"
-"$HUB" query "SELECT * FROM recordings WHERE project = 'acme'" --json
-```
-
-A batch is worth agreeing on before it starts, because it is a lot of recordings and minutes each, not because of what it costs. Filter to what the user actually wants, and confirm the set with them first:
-
-```bash
-for id in $("$HUB" query "SELECT id FROM pending_transcription WHERE duration_min >= 5" --no-header); do
-  "$HUB" pull "$id"
-done
-```
-
-`pending` here means Plaud holds no transcript, which is now the normal state rather than a problem: pulling one transcribes it.
-
-Commit `catalog.jsonl` and whatever was pulled; the sqlite index is rebuildable and stays out of git.
-
-## `.plaud.json`
-
-At the repository root. `context` is required to bring a transcript in; everything else is optional, and without the file the skill runs ad-hoc and has nothing to tell you about filing.
+When a repository will take in more than the occasional recording, write `.plaud.json` at its root. **Read the repository first** — its `CLAUDE.md`/`AGENTS.md`, its meeting-notes or filing skill, and how the documents already there are named — and then propose the file to the user before writing it. What you are encoding is that repository's convention, and getting it wrong files every future transcript in the wrong place.
 
 ```json
 {
-  "context": "docs/briefing.md",
-  "filing": "docs/meeting-notes.md",
+  "context": "contexto/briefing.md",
+  "filing": ".agents/skills/meeting-notes/SKILL.md",
   "scratch": "workspace/plaud",
-  "hub": "studio/plaud",
-  "exclude_tags": ["Client A"],
-  "exclude_reason": "handled-in-the-client-repo",
-  "utc_offset": -3
+  "language": "pt",
+  "name": "{date}-{slug}.md",
+  "front_matter": { "type": "Transcript" },
+  "profiles": {
+    "cerc": {
+      "tag": "PPFX - Amanda",
+      "dest": "reunioes/{year}",
+      "front_matter": { "client": "CERC" }
+    }
+  }
 }
 ```
 
-| Key | Effect |
+| Key | What to put there |
 | :-- | :-- |
-| `context` | Path to a file describing this work: a briefing, an agenda, a list of the people and companies involved. Required, and it is what settles how their names are spelt, so two transcripts of the same people agree. Any file will do; a thin one is better than none. |
-| `filing` | Path to the document that says where a transcript belongs here. The one key worth setting even in the simplest repository. |
-| `scratch` | Default directory for `fetch` when `--to` is omitted. Point it at a git-ignored directory when transcripts should not be committed as they are. |
-| `hub` | Turns on catalog mode and names the directory holding it. Absent means ad-hoc. |
-| `exclude_tags` | Plaud tags whose recordings are out of scope: they stay indexed but are marked `excluded` on refresh. Catalog mode only. |
-| `exclude_reason` | What to record as the reason for those. |
-| `utc_offset` | Timezone for recording timestamps, in hours from UTC. Defaults to the machine's timezone. |
+| `context` | A file describing this work: a briefing, an agenda, the people and companies involved. **The one key worth having in every repository**, because it is what settles how names are spelt, so two transcripts of the same people agree. A thin one is better than none. If nothing suitable exists, write one with the user. |
+| `filing` | The document saying where a transcript belongs here. Point it at the repository's own meeting-notes skill or filing convention, not at a copy. |
+| `scratch` | Where transcripts land when nothing names a destination. Point it at a git-ignored directory when transcripts should not be committed as they are. |
+| `language` | The language these meetings are held in, when it is always the same one. Removes a whole class of translated transcript. |
+| `name`, `dest` | Templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}`, `{short_id}`. Match what the repository already does; a field nothing answers is refused rather than written into a filename. |
+| `front_matter` | Keys every transcript should arrive with, so the filing step is not editing them in afterwards. |
+| `profiles` | One per recurring set of recordings: `tag` selects them and the rest says where they go. This is what makes `sync --profile` a single instruction. |
+| `hub` | Turns on the catalog and names the directory holding it. Only for a repository where the set of recordings is itself something to track. |
+| `exclude_tags`, `exclude_reason` | Tags whose recordings are out of scope here — typically because another repository owns them. Catalog only. |
+| `utc_offset` | Hours from UTC, so two machines file one recording under one day. |
 
-## Setup
+Check it with `"$PLAUD" config`, and fetch one recording before declaring it done.
 
-**The binary takes care of itself.** `doctor` (or the first command that needs it) installs the pinned release of [`jaisonerick/plaud-cli`](https://github.com/jaisonerick/plaud-cli), matched to the platform and checked against the release's sha256.
+## The catalog
 
-**One binary, where the shell finds it.** A `plaud` already on PATH is the one kept up to date: when it falls behind the pinned version, that file is replaced, rather than a second copy installed beside it — two that differ is how an old one goes on being the one that answers. With nothing on PATH, it is installed to `~/.local/bin` (`%LOCALAPPDATA%\plaud` on Windows), so the person whose machine it is can type the name too. Windows has a PATH of the user's own and it is set; elsewhere PATH is built by files somebody else manages, so the line to add is printed instead of edited in.
+Only for a repository declaring `hub`: an index of every recording it knows about, what it is, whether it has been transcribed and where it was filed. It is `catalog.jsonl` in that directory, git-tracked, one JSON object per recording.
+
+```bash
+"$PLAUD" catalog refresh                  # merge the account's recordings in; curation is kept
+"$PLAUD" catalog status                   # counts by status
+"$PLAUD" catalog list --unfiled --min-minutes 5
+"$PLAUD" catalog list --project dinie --json
+"$PLAUD" catalog set <id> project=acme path=notes/acme.md status=filed
+```
+
+`status` is the manifest: `pending` (no transcript yet), `transcribed` (has one, not filed), `filed` (mapped to a destination), `excluded` (out of scope here). The first two are recomputed on every refresh; the last two are a person's decision and a refresh never touches them, nor any other curated field.
+
+`fetch` and `sync` update the entry themselves, so there is no separate step to remember. Commit `catalog.jsonl` and whatever was pulled.
 
 ## Windows
 
@@ -246,7 +236,7 @@ When `doctor` reports `NOT AUTHENTICATED`, **conduct the login yourself, in the 
 1. Ask for the email on the Plaud account, and send the code:
 
    ```bash
-   plaud login --send-code --email <email> --json
+   "$PLAUD" login --send-code --email <email> --json
    ```
 
    That prints an `otp_token`, which is a handle for the pending login, not a credential to keep. Nothing is stored yet.
@@ -254,7 +244,7 @@ When `doctor` reports `NOT AUTHENTICATED`, **conduct the login yourself, in the 
 2. Ask the user for the code that just arrived in their inbox (six digits, from Plaud), and finish:
 
    ```bash
-   plaud login --email <email> --otp-token <otp_token> --code <code>
+   "$PLAUD" login --email <email> --otp-token <otp_token> --code <code>
    ```
 
    `Token saved. You're logged in.` means done. Confirm with `doctor` and carry on with what they originally asked for.
@@ -277,8 +267,8 @@ Accounts are per person and each one sees only its own recordings. A teammate's 
 Transcription runs on a service shared by everyone at the domains it serves, and a Google account is what gets in. Nothing from the cloud it runs on is needed: no account there, no keys.
 
 ```bash
-plaud auth status      # who is signed in, and whether it still works
-plaud auth logout      # forget it
+"$PLAUD" auth status      # who is signed in, and whether it still works
+"$PLAUD" auth logout      # forget it
 ```
 
 **Conduct this login too, in the conversation.** It asks nothing of the machine — no browser, no port, no visible terminal — so it works the same over ssh, in a container, or on a phone.
@@ -286,7 +276,7 @@ plaud auth logout      # forget it
 Start it in the background and read the first line it prints:
 
 ```bash
-plaud auth login --json > /tmp/plaud-login.json 2>&1 &
+"$PLAUD" auth login --json > /tmp/plaud-login.json 2>&1 &
 ```
 
 The first line arrives immediately and carries `user_code` and `verification_url`. **Show both to the user and ask them to enter the code**, then watch the same file: the command is still running, and writes a second line when the sign-in lands.
@@ -297,10 +287,6 @@ The first line arrives immediately and carries `user_code` and `verification_url
 ```
 
 `signed-in` with `served: true` means done; carry on with what they originally asked for. `served: false` means the account is outside the domains this service serves, and the cure is another sign-in as the right one. `failed` carries the reason, and an expired code just needs the command run again.
-
-An account outside those domains is refused by name later too, saying which domains they are — a wrong-account answer, not a broken-setup one.
-
-The two sign-ins are independent. A machine can read recordings and be unable to transcribe them, or the reverse; `doctor` is what tells the two apart.
 
 | Variable | Effect |
 | :-- | :-- |
@@ -315,43 +301,47 @@ The two sign-ins are independent. A machine can read recordings and be unable to
 ## CLI reference
 
 ```bash
+plaud doctor                                     # both sign-ins and this repository
+plaud config                                     # what .plaud.json resolved to
+
+plaud fetch <id> [--to PATH] [--summary-to PATH] [--profile NAME]
+                 [--context TEXT | --context-file FILE]
+                 [--language pt] [--force] [--format md|json|txt|srt] [--json]
+plaud sync [--profile NAME] [--tag NAME] [--since DATE] [--all]
+           [--dry-run] [--only-new] [--json]
+
 plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transcript]
            [--has-summary] [--search STR] [--limit N] [--json]
 plaud info <id> [--json]
 
-plaud transcript <id> --context FILE|TEXT         # required: a file describing it, or the description
-                      [--format md|json|txt|srt] [--language pt]
-                      [--output-dir DIR] [--into FILE] [--identify]
-                      [--force]                    # transcribe again instead of reusing
-plaud download <id> [--audio] [--summary] [--output-dir DIR] [--force]
-
-plaud auth login | auth status | auth logout        # the transcription service
+plaud catalog refresh | status | list [filters] | set <id> key=value ...
 
 plaud speaker list [--long]
 plaud speaker name <recording-id> <label> "First Last" --company X [--surname-unknown]
 plaud speaker rename <current> "First Last" --company X
 plaud speaker forget "First Last"
 plaud speaker enroll --company X [--dry-run] [--limit N] [--max-per-speaker N]
-plaud speaker teach <recording-id> --ranges FILE [--dry-run]   # one label, two people
+plaud speaker teach <recording-id> --ranges FILE [--dry-run]
 
-plaud search "text" [--limit N] [--no-cache]     # over transcripts, cached locally
-plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
-plaud ask <id> "question"                        # streams the answer
-
-plaud tag list | tag create "Name" | tag delete "Name"
+plaud auth login | auth status | auth logout        # the transcription service
+plaud login --send-code --email <email> --json      # the Plaud account
 plaud me
+
+plaud search "text" [--limit N] [--no-cache]
+plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
+plaud ask <id> "question"
+plaud download <id> [--audio] [--summary] [--output-dir DIR]
+plaud tag list | tag create "Name" | tag delete "Name"
 ```
 
 `--debug`, `--json` and `--help` work on every command.
 
-`--into` writes one recording to exactly that file, and refreshes the names in it when it is already there. It is how `fetch` puts a transcript where the repository wants it.
-
-`transcript` and `download` also take the filters `list` takes, plus `--all`, and then act on every recording they keep. `download` skips what is already on disk; `transcript` refreshes the names in it. That is the bulk path, and it belongs to a person who asked for a batch: prefer `fetch` or `pull`, which put one file where the repository wants it.
+`transcript` is the lower-level command `fetch` is built on: it takes an output directory or an exact file rather than reading the repository. Reach for it only when the repository's rules are not what you want.
 
 ## Rules
 
 - **Never delete a recording from Plaud.** This skill reads, transcribes and organizes, and nothing here removes anything from the account.
-- **A batch is agreed before it runs**, not because transcribing is expensive but because a hundred recordings is a decision somebody should make on purpose. One recording on request needs no ceremony.
-- **Never invent who a speaker is.** The service names the voices it already knows; an unnamed one stays `SPEAKER_01` until somebody who was in the room says otherwise. Guessing from context puts a name on a voice for everyone else too.
+- **A batch is agreed before it runs.** `sync --dry-run`, show the list, then run it. One recording on request needs no ceremony.
+- **Never invent who a speaker is.** The service names the voices it already knows; an unnamed one stays `SPEAKER_01` until somebody who was in the room says otherwise.
 - **Keep the transcript in the language it was spoken.** Translating a meeting loses what made it worth keeping; a summary follows the destination's language if that differs.
 - **The transcript is the source, the note is what people read.** Keep the transcript reachable from the note rather than replacing it.

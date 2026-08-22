@@ -1,10 +1,10 @@
 #!/bin/sh
-# Run the engine under whatever Python 3 this machine has.
+# Put a current plaud CLI on this machine, under whatever Python 3 it has.
 #
 # python3 is the usual name, python is it on a machine that ships only one, and
 # py is the launcher Windows installs. The version is checked rather than
-# assumed, because a `python` that is still Python 2 fails inside the engine on
-# a syntax error, which reads as the skill being broken.
+# assumed, because a `python` that is still Python 2 fails on a syntax error,
+# which reads as the skill being broken.
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 # The console Windows hands a program is not UTF-8, and every name here has an
@@ -15,7 +15,7 @@ export PYTHONIOENCODING
 for name in python3 python py; do
     command -v "$name" >/dev/null 2>&1 || continue
     "$name" -c 'import sys; raise SystemExit(sys.version_info < (3, 8))' >/dev/null 2>&1 || continue
-    exec "$name" "$here/plaud_hub.py" "$@"
+    exec "$name" "$here/ensure_plaud.py" "$@"
 done
 
 echo "plaud: no Python 3.8 or newer on PATH (looked for python3, python and py)" >&2
