@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v27] - 2026-08-22
+
+### Changed
+- Tell the user when voices have no name, and open the page when they ask
+
 ## [Plugin: plaud v26] - 2026-08-22
 
 ### Changed
