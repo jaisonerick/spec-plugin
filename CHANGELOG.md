@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v23] - 2026-08-22
+
+### Changed
+- plaud: install where the shell will find it
+
 ## [Plugin: plaud v22] - 2026-08-22
 
 ### Changed
