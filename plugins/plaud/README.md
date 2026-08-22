@@ -24,6 +24,7 @@ What a fresh environment still needs is an authenticated account:
 | `PLAUD_TOKEN` | Access token, standing in for `~/.config/plaud/token.json` entirely. Nothing is written to disk, which suits an ephemeral container. |
 | `PLAUD_BIN` | Use this binary instead of resolving one. |
 | `PLAUD_CLI_VERSION` | Install a different release: `latest`, or an explicit tag. |
+| `PLAUD_SETTINGS` | The file holding what you settle per repository. |
 
 **The assistant signs the user in, and never asks for a password.** When the account is not authenticated, the skill runs the login as a conversation: it asks for the email, sends a one-time code, asks for the six digits that arrived in the inbox, and stores the token. A code expires in minutes and works once, which is what makes it safe to say out loud; a password is neither. Nothing in that flow needs a browser, an open port or a visible terminal, so it behaves the same in a terminal, a desktop app, a phone or a sandbox.
 
@@ -60,7 +61,9 @@ The resulting token is a JWT valid for months and nothing renews it, so `doctor`
 
 `context` is a file describing the work: the people, the companies, how their names are spelt. It is what makes two transcripts of the same people agree, and a thin one is better than none. `filing` points at the document that says where a transcript belongs here, which is what stops the agent inventing a destination. `scratch` is where a transcript lands when nothing names one; point it at a git-ignored directory when transcripts should not be committed as they arrive.
 
-`name` and `dest` are templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}` and `{short_id}`. A profile is a named set of those keys plus the tag that selects recordings for it, which is what makes `plaud sync --profile cerc` a single instruction.
+`name` and `dest` are templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}` and `{short_id}`. A profile is a named set of those keys, and `plaud sync --profile cerc` brings in everything it selects.
+
+**What a profile selects is not in this file.** A Plaud tag lives in one person's account, so a committed tag selects nothing for the next person who clones the repository. That half goes in `~/.config/plaud/settings.json`, is never committed, and is written with `plaud profile set cerc --tag "PPFX - Amanda"`. The settings are keyed by where the repository is hosted, so they survive a fresh clone and a second checkout, and the same file takes `defaults` for what is true of that person wherever they work. `plaud config` names the layer behind each value.
 
 Adding `hub` turns on the catalog:
 
@@ -88,6 +91,7 @@ PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
 "$PLAUD" config                                      # what .plaud.json resolved to
 "$PLAUD" fetch <id>                                  # into where this repository puts transcripts
 "$PLAUD" fetch <id> --to comms/2026-08-06-call/transcript.md
+"$PLAUD" profile set cerc --tag "PPFX - Amanda"       # which of your recordings feed it
 "$PLAUD" sync --profile cerc --dry-run               # a whole set at once
 
 "$PLAUD" catalog refresh                             # catalog mode

@@ -91,7 +91,9 @@ Two flags override that, and both cost a GPU pass, so neither is a default:
 "$PLAUD" sync --tag "PPFX - Amanda" --since 2026-08-01
 ```
 
-A profile in `.plaud.json` names both the tag that selects recordings and where they are filed, so `--profile cerc` is the whole instruction. Running it twice decodes nothing the second time: what says a recording is here is the file at the destination.
+A profile names both where the recordings are filed and the tag that selects them, so `--profile cerc` is the whole instruction. Running it twice decodes nothing the second time: what says a recording is here is the file at the destination.
+
+**The tag is not in the repository, and that is deliberate** — see *Two owners, one profile*. A profile whose tag nobody has set is refused, with the command that sets it.
 
 It does not leave the transcripts already here alone, though. Every one in range is asked about again, and **the ones whose turns changed name are listed at the end of the run** — that is how a name settled since reaches a file that was written before it. `--only-new` skips that half.
 
@@ -173,11 +175,7 @@ When a repository will take in more than the occasional recording, write `.plaud
   "name": "{date}-{slug}.md",
   "front_matter": { "type": "Transcript" },
   "profiles": {
-    "cerc": {
-      "tag": "PPFX - Amanda",
-      "dest": "reunioes/{year}",
-      "front_matter": { "client": "CERC" }
-    }
+    "cerc": { "dest": "reunioes/{year}", "front_matter": { "client": "CERC" } }
   }
 }
 ```
@@ -187,15 +185,34 @@ When a repository will take in more than the occasional recording, write `.plaud
 | `context` | A file describing this work: a briefing, an agenda, the people and companies involved. **The one key worth having in every repository**, because it is what settles how names are spelt, so two transcripts of the same people agree. A thin one is better than none. If nothing suitable exists, write one with the user. |
 | `filing` | The document saying where a transcript belongs here. Point it at the repository's own meeting-notes skill or filing convention, not at a copy. |
 | `scratch` | Where transcripts land when nothing names a destination. Point it at a git-ignored directory when transcripts should not be committed as they are. |
-| `language` | The language these meetings are held in, when it is always the same one. Removes a whole class of translated transcript. |
+| `language` | The language these meetings are held in, when it is always the same one. Removes a whole class of translated transcript, and costs nothing: a transcript already on record in that language is still handed back. |
 | `name`, `dest` | Templates over `{date}`, `{year}`, `{month}`, `{day}`, `{time}`, `{slug}`, `{id}`, `{short_id}`. Match what the repository already does; a field nothing answers is refused rather than written into a filename. |
 | `front_matter` | Keys every transcript should arrive with, so the filing step is not editing them in afterwards. |
-| `profiles` | One per recurring set of recordings: `tag` selects them and the rest says where they go. This is what makes `sync --profile` a single instruction. |
+| `profiles` | One per recurring set of recordings: where they go and what they are called. **Never the tag** — that is the user's half. |
 | `hub` | Turns on the catalog and names the directory holding it. Only for a repository where the set of recordings is itself something to track. |
 | `exclude_tags`, `exclude_reason` | Tags whose recordings are out of scope here — typically because another repository owns them. Catalog only. |
 | `utc_offset` | Hours from UTC, so two machines file one recording under one day. |
 
 Check it with `"$PLAUD" config`, and fetch one recording before declaring it done.
+
+## Two owners, one profile
+
+**A Plaud tag lives in one person's account.** "PPFX - Amanda" is a tag Amanda made; a teammate who clones the repository has their own account, their own tags, and a committed tag selects nothing for them. So a profile is written by two people:
+
+- The **repository** says where transcripts of that kind go, what they are called and what their front matter carries. That is in `.plaud.json` and is committed.
+- The **person** says which of *their* recordings are of that kind. That is in `~/.config/plaud/settings.json`, is never committed, and is written with:
+
+```bash
+"$PLAUD" tag list                                   # what this account actually has
+"$PLAUD" profile set cerc --tag "PPFX - Amanda"
+"$PLAUD" profile list                               # which profiles can select anything
+```
+
+The settings are keyed by where the repository is hosted, so they survive a fresh clone, a second checkout and another machine.
+
+**When `profile list` shows a profile with no tag, that is the setup step, not a fault.** Show the user `tag list`, ask which tag is theirs for this work, and set it. Never guess: a wrong tag silently syncs another client's meetings into this repository.
+
+The same file takes `defaults`, for what is true of the person wherever they work, and can override any repository key for one repository. `"$PLAUD" config` prints `set_in`, which names the layer behind each value — the repository, that person's settings for it, or their defaults — so a value that is not what the committed file says can be traced without guessing.
 
 ## The catalog
 
@@ -296,6 +313,7 @@ The first line arrives immediately and carries `user_code` and `verification_url
 | `PLAUD_WHISPER_URL` | Point at a different transcription service |
 | `PLAUD_BIN` | Use this binary instead of resolving one |
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
+| `PLAUD_SETTINGS` | The file holding what you settle per repository |
 | `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
 
 ## CLI reference
@@ -315,6 +333,10 @@ plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transc
 plaud info <id> [--json]
 
 plaud catalog refresh | status | list [filters] | set <id> key=value ...
+
+plaud profile list                                   # this repository's profiles
+plaud profile set <name> --tag "<your tag>"          # your half, never committed
+plaud profile unset <name>
 
 plaud speaker list [--long]
 plaud speaker name <recording-id> <label> "First Last" --company X [--surname-unknown]
