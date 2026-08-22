@@ -69,7 +69,7 @@ LINKS_TEMPLATE = os.path.join(HERE, "links_template.html")
 # release, so the commands and flags documented here are the ones that run.
 # Override with PLAUD_CLI_VERSION=latest, or with an explicit tag.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.19.0"
+CLI_VERSION = "0.20.0"
 
 CONFIG_NAME = ".plaud.json"
 CONFIG_KEYS = {"hub", "scratch", "filing", "context", "exclude_tags", "exclude_reason", "utc_offset"}
@@ -184,15 +184,66 @@ def plaud_bin(install=True):
         return _BIN
 
     wanted = _as_version(_resolve_version())
-    for candidate in (shutil.which("plaud"), os.path.join(_managed_dir(), _bin_name())):
-        if candidate and os.path.exists(candidate) and _version_of(candidate) >= wanted:
-            _BIN = candidate
-            return _BIN
+    on_path = shutil.which("plaud")
+    managed = os.path.join(_managed_dir(), _bin_name())
 
+    # The copy on PATH is the one that runs, for this skill and for whoever
+    # types `plaud`, so it is the one kept current. Installing beside it leaves
+    # two, and the older one goes on being the one that answers.
+    if on_path and os.path.exists(on_path):
+        _sweep_old(on_path)
+        if _version_of(on_path) < wanted:
+            if not install:
+                sys.exit(f"{on_path} is older than this skill needs. Run `plaud_hub install`")
+            try:
+                install_cli(on_path)
+            except PermissionError:
+                print(f"cannot write {on_path}, so the copy this skill manages is used instead. "
+                      "Two plaud binaries now differ; delete that one or make it writable.",
+                      file=sys.stderr)
+                _BIN = _managed_copy(wanted, install)
+                return _BIN
+        _drop_managed_copy(managed, on_path)
+        _BIN = on_path
+        return _BIN
+
+    _BIN = _managed_copy(wanted, install)
+    return _BIN
+
+
+def _managed_copy(wanted, install):
+    """The copy this skill keeps, for a machine with no plaud of its own."""
+    managed = os.path.join(_managed_dir(), _bin_name())
+    _sweep_old(managed)
+    if os.path.exists(managed) and _version_of(managed) >= wanted:
+        return managed
     if not install:
         sys.exit("the plaud CLI is missing or too old. Run `plaud_hub install`")
-    _BIN = install_cli()
-    return _BIN
+    return install_cli()
+
+
+def _drop_managed_copy(managed, in_use):
+    """Two binaries that differ is how an old one goes on being the one that
+    runs, so the one nobody reaches for is removed once the other is current."""
+    if managed == in_use or not os.path.exists(managed):
+        return
+    try:
+        os.remove(managed)
+        print(f"removed {managed}, now that {in_use} is the one kept up to date.", file=sys.stderr)
+    except OSError:
+        pass
+
+
+def _old_path(target):
+    return target + ".old"
+
+
+def _sweep_old(target):
+    """Drop what an update moved aside, on the first run where nothing holds it."""
+    try:
+        os.remove(_old_path(target))
+    except OSError:
+        pass
 
 
 def _as_version(text):
@@ -238,12 +289,15 @@ def _resolve_version():
         return json.load(r)["tag_name"].lstrip("v")
 
 
-def install_cli():
-    """Download the pinned release into the user's data dir. No sudo, no PATH changes."""
+def install_cli(target=None):
+    """Download the pinned release over `target`, or into the user's data dir.
+
+    No sudo and no PATH changes: what is replaced is a file that is already
+    where it is used."""
     version = _resolve_version()
     asset = _asset_name()
     base = f"https://github.com/{CLI_REPO}/releases/download/v{version}"
-    target = os.path.join(_managed_dir(), _bin_name())
+    target = target or os.path.join(_managed_dir(), _bin_name())
     print(f"installing plaud-cli v{version} ({asset}) -> {target}", file=sys.stderr)
 
     try:
@@ -262,14 +316,35 @@ def install_cli():
     if actual != expected:
         sys.exit(f"checksum mismatch for {asset}: expected {expected}, got {actual}")
 
-    os.makedirs(_managed_dir(), exist_ok=True)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
     tmp = target + ".part"
     with open(tmp, "wb") as f:
         f.write(payload)
     os.chmod(tmp, 0o755)
-    os.replace(tmp, target)
+    _put_in_place(tmp, target)
     _unblock(target)
     return target
+
+
+def _put_in_place(tmp, target):
+    """Windows will not write over a binary that is running, but it will rename
+    one: the name is freed for the new file and what was moved aside goes on the
+    next run, the first moment nothing holds it."""
+    try:
+        os.replace(tmp, target)
+        return
+    except PermissionError:
+        if not os.path.exists(target):
+            raise
+
+    aside = _old_path(target)
+    _sweep_old(target)
+    os.replace(target, aside)
+    try:
+        os.replace(tmp, target)
+    except OSError:
+        os.replace(aside, target)  # better the old binary back than none
+        raise
 
 
 def _unblock(path):
