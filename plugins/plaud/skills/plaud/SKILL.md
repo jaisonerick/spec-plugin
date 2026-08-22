@@ -93,7 +93,9 @@ Two flags override that, and both cost a GPU pass, so neither is a default:
 
 A profile names both where the recordings are filed and the tag that selects them, so `--profile cerc` is the whole instruction. Running it twice decodes nothing the second time: what says a recording is here is the file at the destination.
 
-**The tag is not in the repository, and that is deliberate** — see *Two owners, one profile*. A profile whose tag nobody has set is refused, with the command that sets it.
+**The tag is not in the repository, and that is deliberate** — see *Two owners, one profile*. A profile whose tag nobody has set is refused, with the command that sets it. An account with no tags at all takes the other route, *When the account has no tags*.
+
+A recording turned down with `triage skip` is left alone here from then on.
 
 It does not leave the transcripts already here alone, though. Every one in range is asked about again, and **the ones whose turns changed name are listed at the end of the run** — that is how a name settled since reaches a file that was written before it. `--only-new` skips that half.
 
@@ -213,6 +215,34 @@ The settings are keyed by where the repository is hosted, so they survive a fres
 **When `profile list` shows a profile with no tag, that is the setup step, not a fault.** Show the user `tag list`, ask which tag is theirs for this work, and set it. Never guess: a wrong tag silently syncs another client's meetings into this repository.
 
 The same file takes `defaults`, for what is true of the person wherever they work, and can override any repository key for one repository. `"$PLAUD" config` prints `set_in`, which names the layer behind each value — the repository, that person's settings for it, or their defaults — so a value that is not what the committed file says can be traced without guessing.
+
+## When the account has no tags
+
+**Plenty of people tag nothing.** `tag list` comes back empty or useless, and then nothing about a recording says which work it belongs to except what was said in it. That is the case `triage` is for, and it is a conversation with the user, not a command you run and report:
+
+```bash
+"$PLAUD" triage --since 2026-08-01
+"$PLAUD" triage --limit 15 --json      # one object per recording, to reason over
+```
+
+Every recording that is not already here and has not been turned down comes back with its date, its length, **the speakers the service recognised**, and enough of what was said to place it. Nothing is written to disk: transcribing is what makes a recording readable at all, the service keeps what it decoded, so one kept afterwards arrives in seconds and one turned down cost a single pass, ever.
+
+**Read the speakers first.** A recording whose voices are "Fabian Kluth (Dinie), Pedro Gomes (Dinie)" is Dinie's, whatever the opening minute of small talk says. The excerpt settles the ones the voices do not.
+
+Then **propose, and let the user decide**:
+
+```bash
+"$PLAUD" fetch <id>                                    # it belongs here
+"$PLAUD" triage skip <id> <id> --reason "Dinie"        # it does not, and stop offering it
+"$PLAUD" triage skipped                                # what has been turned down, and why
+"$PLAUD" triage unskip <id>                            # you were wrong
+```
+
+Group your proposal — "these six look like this client, these three look personal, these two I cannot place" — and show the date, the length and the speakers for each, so the user is confirming rather than reading. **Never skip on your own judgement.** A recording turned down stays turned down and stops being offered, which is the point and also why a wrong call is invisible afterwards.
+
+Write the reason. What tells a recording turned down for being another client's from one turned down for being three seconds of pocket noise is the reason, and in six months neither the date nor the title says.
+
+**Start narrow.** `--since` a month back, or `--limit 15`, before `--all`: an account with hundreds of untranscribed recordings is hours of GPU, and the user should agree to that set before it starts.
 
 ## The catalog
 
@@ -337,6 +367,9 @@ plaud catalog refresh | status | list [filters] | set <id> key=value ...
 plaud profile list                                   # this repository's profiles
 plaud profile set <name> --tag "<your tag>"          # your half, never committed
 plaud profile unset <name>
+
+plaud triage [--since DATE] [--limit N] [--all] [--excerpt N] [--json]
+plaud triage skip <id> ... [--reason X] | unskip <id> ... | skipped
 
 plaud speaker list [--long]
 plaud speaker name <recording-id> <label> "First Last" --company X [--surname-unknown]

@@ -65,6 +65,8 @@ The resulting token is a JWT valid for months and nothing renews it, so `doctor`
 
 **What a profile selects is not in this file.** A Plaud tag lives in one person's account, so a committed tag selects nothing for the next person who clones the repository. That half goes in `~/.config/plaud/settings.json`, is never committed, and is written with `plaud profile set cerc --tag "PPFX - Amanda"`. The settings are keyed by where the repository is hosted, so they survive a fresh clone and a second checkout, and the same file takes `defaults` for what is true of that person wherever they work. `plaud config` names the layer behind each value.
 
+An account that tags nothing takes the other route: `plaud triage` transcribes every recording nobody has placed and reports who spoke and enough of what was said to tell whose meeting it was, so the assistant can propose and the person decide. What they turn down goes in the same settings, with the reason, and stops being offered.
+
 Adding `hub` turns on the catalog:
 
 ```json
@@ -92,6 +94,8 @@ PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
 "$PLAUD" fetch <id>                                  # into where this repository puts transcripts
 "$PLAUD" fetch <id> --to comms/2026-08-06-call/transcript.md
 "$PLAUD" profile set cerc --tag "PPFX - Amanda"       # which of your recordings feed it
+"$PLAUD" triage --since 2026-08-01                   # no tags? read them and decide
+"$PLAUD" triage skip <id> --reason "another client"
 "$PLAUD" sync --profile cerc --dry-run               # a whole set at once
 
 "$PLAUD" catalog refresh                             # catalog mode
