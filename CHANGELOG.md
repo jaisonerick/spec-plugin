@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v25] - 2026-08-22
+
+### Changed
+- A profile is written by two people
+
 ## [Plugin: plaud v24] - 2026-08-22
 
 ### Changed
