@@ -57,6 +57,9 @@ One report covering both sign-ins and how this repository is configured. When so
 "$PLAUD" info <id>                              # one recording
 ```
 
+There is no search across what was said: the transcripts are files in the
+repository, so grep them.
+
 When several could be the one, show the candidates with date and duration and let the user pick, rather than guessing from the title.
 
 ## Bringing one transcript in
@@ -227,12 +230,12 @@ Check it with `"$PLAUD" config`, and fetch one recording before declaring it don
 ```bash
 "$PLAUD" tag list                                   # what this account actually has
 "$PLAUD" profile set cerc --tag "PPFX - Amanda"
-"$PLAUD" profile list                               # which profiles can select anything
+"$PLAUD" config                                     # says which profiles have no tag yet
 ```
 
 The settings are keyed by where the repository is hosted, so they survive a fresh clone, a second checkout and another machine.
 
-**When `profile list` shows a profile with no tag, that is the setup step, not a fault.** Show the user `tag list`, ask which tag is theirs for this work, and set it. Never guess: a wrong tag silently syncs another client's meetings into this repository.
+**When `config` reports a profile with no tag, that is the setup step, not a fault.** Show the user `tag list`, ask which tag is theirs for this work, and set it. Never guess: a wrong tag silently syncs another client's meetings into this repository.
 
 The same file takes `defaults`, for what is true of the person wherever they work, and can override any repository key for one repository. `"$PLAUD" config` prints `set_in`, which names the layer behind each value — the repository, that person's settings for it, or their defaults — so a value that is not what the committed file says can be traced without guessing.
 
@@ -323,7 +326,7 @@ Nothing in this needs a browser, an open port, or a terminal the user can see, s
 Two other ways in exist, and neither replaces the above as the default:
 
 - **`PLAUD_TOKEN`** in the environment, when the user already has a token. Nothing is written to disk, which suits an ephemeral container.
-- **`plaud login --password`**, only when the user volunteers a password or a machine is being provisioned unattended (`--password-stdin`, `PLAUD_PASSWORD`). Accounts created through Google, Apple or Microsoft have no password at all until one is set in the Plaud app, so the code flow is the one that always works.
+- **`plaud login --password`**, only when the user volunteers a password or a machine is being provisioned unattended. It is read from `PLAUD_PASSWORD` or from stdin and never prompted for. Accounts created through Google, Apple or Microsoft have no password at all until one is set in the Plaud app, so the code flow is the one that always works.
 
 The token is a JWT valid for months, and **nothing in this stack refreshes it**. `doctor` prints the expiry date so a task does not discover it halfway through; when it does expire, the cure is another login, exactly as above.
 
@@ -365,13 +368,12 @@ The first line arrives immediately and carries `user_code` and `verification_url
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
 | `PLAUD_SETTINGS` | The file holding what you settle per repository |
 | `PLAUD_NO_BROWSER` | Print a page's URL instead of opening a window |
-| `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
 
 ## CLI reference
 
 ```bash
 plaud doctor                                     # both sign-ins and this repository
-plaud config                                     # what .plaud.json resolved to
+plaud config                                     # what .plaud.json resolved to, and where each value came from
 
 plaud fetch <id> [--to PATH] [--summary-to PATH] [--profile NAME]
                  [--context TEXT | --context-file FILE]
@@ -379,42 +381,41 @@ plaud fetch <id> [--to PATH] [--summary-to PATH] [--profile NAME]
 plaud sync [--profile NAME] [--tag NAME] [--since DATE] [--all]
            [--dry-run] [--only-new] [--json]
 
+plaud triage [--since DATE] [--limit N] [--all] [--excerpt N] [--json]
+plaud triage skip <id> ... [--reason X] | unskip <id> ... | skipped
+
 plaud list [--tag NAME] [--since YYYY-MM-DD] [--before YYYY-MM-DD] [--has-transcript]
            [--has-summary] [--search STR] [--limit N] [--json]
 plaud info <id> [--json]
+plaud audio [id] [filters] [--output-dir DIR] [--force]
 
 plaud catalog refresh | status | list [filters] | set <id> key=value ...
 
-plaud profile list                                   # this repository's profiles
 plaud profile set <name> --tag "<your tag>"          # your half, never committed
 plaud profile unset <name>
-
-plaud triage [--since DATE] [--limit N] [--all] [--excerpt N] [--json]
-plaud triage skip <id> ... [--reason X] | unskip <id> ... | skipped
 
 plaud speaker pending [--json]                       # voices nobody has named
 plaud speaker identify                               # the page that names them
 plaud speaker list [--long]
-plaud speaker name <recording-id> <key> "First Last" --company X [--surname-unknown]
+plaud speaker name <recording-id> <key> "First Last" --company X [--surname-unknown] [--new-person]
 plaud speaker rename <current> "First Last" --company X
 plaud speaker forget "First Last"
-plaud speaker enroll --company X [--dry-run] [--limit N] [--max-per-speaker N]
 plaud speaker teach <recording-id> --ranges FILE [--dry-run]
 
 plaud auth login | auth status | auth logout        # the transcription service
 plaud login --send-code --email <email> --json      # the Plaud account
-plaud me
-
-plaud search "text" [--limit N] [--no-cache]
-plaud summarize <id> [--template meeting|detailed] [--prompt "..."] [--output FILE]
-plaud ask <id> "question"
-plaud download <id> [--audio] [--summary] [--output-dir DIR]
 plaud tag list | tag create "Name" | tag delete "Name"
+plaud update
 ```
 
 `--debug`, `--json` and `--help` work on every command.
 
-`transcript` is the lower-level command `fetch` is built on: it takes an output directory or an exact file rather than reading the repository. Reach for it only when the repository's rules are not what you want.
+**Nothing here prompts.** It is built for being run by something else: a
+password comes from `PLAUD_PASSWORD` or stdin, a name that resembles somebody
+already known is refused with the command that settles it rather than asked
+about, and progress is written as plain lines when the output is not a
+terminal. If a command appears to hang, it is waiting on the network or on a
+GPU, not on you.
 
 ## Rules
 

@@ -39,7 +39,7 @@ def _speak_utf8():
 # The CLI this skill is written against. Pinned rather than tracking the latest
 # release, so the commands and flags the skill documents are the ones that run.
 CLI_REPO = "jaisonerick/plaud-cli"
-CLI_VERSION = "0.24.0"
+CLI_VERSION = "0.25.0"
 
 
 _BIN = None
