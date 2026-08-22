@@ -104,3 +104,5 @@ PLAUD=$("${CLAUDE_PLUGIN_ROOT}/skills/plaud/ensure_plaud")
 ```
 
 A recording without a transcript is transcribed on the way through, which takes minutes rather than seconds; one that has been through the service already comes back in seconds. Speakers the service recognises come back named as `First Last (Company)`, and fetching a transcript that is already on disk brings those names up to date rather than decoding anything. Nothing here deletes anything from the account.
+
+A voice the service has never heard stays `SPEAKER_01`. `plaud speaker pending` counts those by reading the transcripts, and `plaud speaker identify` opens a page that plays the stretches where each one is speaking and takes the name, registering it as it is typed. What is learned there is a voice, so the person is recognised in every recording afterwards, however the transcript spelt them.

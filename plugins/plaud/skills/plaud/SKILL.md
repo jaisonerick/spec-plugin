@@ -122,16 +122,48 @@ Then read the file. A long transcript is raw speech: expect false starts, crosst
 
 ## Who is speaking
 
-Transcripts come back with the voices the service recognises already named, as `First Last (Company)`. A voice it has never heard stays `SPEAKER_01`, and naming it is what teaches it:
+Transcripts come back with the voices the service recognises already named, as `First Last (Company)`. A voice it has never heard stays `SPEAKER_01`.
+
+**Check after every fetch and every sync, and tell the user:**
 
 ```bash
-"$PLAUD" speaker list
-"$PLAUD" speaker name <recording-id> SPEAKER_01 "Jaison Erick" --company NexaEdge
+"$PLAUD" speaker pending
+"$PLAUD" speaker pending --json      # counts, for deciding whether to mention it
 ```
 
-The recording id is the one `list` shows; nothing about the voices is kept on this machine, so naming one needs no file and no audio.
+It reads the files and asks nothing, so it costs nothing to run. **This does not block anything** — a transcript with an unnamed voice is still a usable transcript, and the note goes at the end of what you were doing, not in place of it. Say how many voices and in how many transcripts, and that naming them takes a couple of minutes in the browser. Then carry on; do not open anything until they ask.
 
-After naming somebody, fetch the transcript again — or run `sync`, which does it for everything at once and says which files changed.
+**When they say they want to name somebody:**
+
+```bash
+"$PLAUD" speaker identify
+```
+
+A page opens in their browser with, for each unnamed voice, the stretches of the recording where it is the one speaking, and a field for the name. They play, they type, they save — each name registers as it is entered, so closing the tab halfway keeps what was done. When they finish, the transcripts here are rewritten with the names.
+
+**Names are typed as `Nome Sobrenome (Empresa)`**, which is the form the transcripts carry, and the people already known are offered as they type. Tell them to pick an existing entry when one fits: two spellings of one person become two people, and only a person can merge them back.
+
+**Leave blank whatever nobody can place.** A guess puts a wrong name on a voice for everyone else using the service, in every transcript that voice ever appears in.
+
+`speaker pending` also reports transcripts that hold unnamed voices and do not say which recording they came from. Those were written before the file carried that, and there is nothing to ask about them; `"$PLAUD" sync` stamps it in and decodes nothing.
+
+For the cases the page does not cover:
+
+```bash
+"$PLAUD" speaker list                                # everybody it knows
+"$PLAUD" speaker rename "Nome Antigo" "Nome Novo" --company X
+"$PLAUD" speaker forget "Nome"                       # learned wrongly, and now claims other voices
+```
+
+A label can hold two people, which happens when they talk over each other. Naming it teaches the average of the two voices and helps nobody, so that one is cut apart by the stretches instead:
+
+```bash
+"$PLAUD" speaker teach <recording-id> --ranges divisao.json --dry-run
+```
+
+where the file lists each person and the milliseconds they speak — `[{"name": "Jaison Erick", "company": "NexaEdge", "ranges": [[262000, 271000]]}]`. Read the transcript's timestamps to build it, and confirm with the audio before running it without `--dry-run`.
+
+People are shared by everyone using the service, which is why a first name alone is refused: "Amanda" names whichever Amanda the person typing meant. A surname nobody knows is a different thing and takes `--surname-unknown`, after which the company does the identifying.
 
 The file carries, in its front matter, which voice each name in it stands for, and the recording it came from:
 
@@ -145,18 +177,6 @@ voices:
 ```
 
 **Keep that block when you file the transcript somewhere else.** It is what lets the names be corrected later; a copy without it can only be fixed by transcribing the audio again, which renumbers the voices and loses the names already given.
-
-A label can hold two people, which happens when they talk over each other. Naming it teaches the average of the two voices and helps nobody, so that one is cut apart by the stretches instead:
-
-```bash
-"$PLAUD" speaker teach <recording-id> --ranges divisao.json --dry-run
-```
-
-where the file lists each person and the milliseconds they speak — `[{"name": "Jaison Erick", "company": "NexaEdge", "ranges": [[262000, 271000]]}]`. Read the transcript's timestamps to build it, and confirm with the audio before running it without `--dry-run`.
-
-People are shared by everyone using the service, which is why a first name alone is refused: "Amanda" names whichever Amanda the person typing meant. A surname nobody knows is a different thing and takes `--surname-unknown`, after which the company does the identifying.
-
-**Ask, do not infer.** Working out from context that SPEAKER_01 is probably the person whose meeting it was is exactly the guess that puts a wrong name on a voice for every other user. If nobody in the conversation knows, leave it.
 
 ## Handing off
 
@@ -344,6 +364,7 @@ The first line arrives immediately and carries `user_code` and `verification_url
 | `PLAUD_BIN` | Use this binary instead of resolving one |
 | `PLAUD_CLI_VERSION` | Install a different release (`latest`, or a tag) |
 | `PLAUD_SETTINGS` | The file holding what you settle per repository |
+| `PLAUD_NO_BROWSER` | Print a page's URL instead of opening a window |
 | `ANTHROPIC_API_KEY` | Needed only by `plaud summarize` and `plaud ask` |
 
 ## CLI reference
@@ -371,8 +392,10 @@ plaud profile unset <name>
 plaud triage [--since DATE] [--limit N] [--all] [--excerpt N] [--json]
 plaud triage skip <id> ... [--reason X] | unskip <id> ... | skipped
 
+plaud speaker pending [--json]                       # voices nobody has named
+plaud speaker identify                               # the page that names them
 plaud speaker list [--long]
-plaud speaker name <recording-id> <label> "First Last" --company X [--surname-unknown]
+plaud speaker name <recording-id> <key> "First Last" --company X [--surname-unknown]
 plaud speaker rename <current> "First Last" --company X
 plaud speaker forget "First Last"
 plaud speaker enroll --company X [--dry-run] [--limit N] [--max-per-speaker N]
@@ -397,6 +420,7 @@ plaud tag list | tag create "Name" | tag delete "Name"
 
 - **Never delete a recording from Plaud.** This skill reads, transcribes and organizes, and nothing here removes anything from the account.
 - **A batch is agreed before it runs.** `sync --dry-run`, show the list, then run it. One recording on request needs no ceremony.
-- **Never invent who a speaker is.** The service names the voices it already knows; an unnamed one stays `SPEAKER_01` until somebody who was in the room says otherwise.
+- **Never invent who a speaker is.** The service names the voices it already knows; an unnamed one stays `SPEAKER_01` until somebody who was in the room says otherwise. A wrong name is not local: it claims that voice in every transcript anybody fetches afterwards.
+- **Say when voices are unnamed, and do not stop for it.** `speaker pending` after a fetch or a sync, mentioned at the end of what you were doing. Open `speaker identify` only when they ask.
 - **Keep the transcript in the language it was spoken.** Translating a meeting loses what made it worth keeping; a summary follows the destination's language if that differs.
 - **The transcript is the source, the note is what people read.** Keep the transcript reachable from the note rather than replacing it.
