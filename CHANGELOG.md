@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v49] - 2026-08-30
+
+### Changed
+- Say that a plugin release moves the marketplace version
+
 ## [Plugin: plaud v28] - 2026-08-22
 
 ### Changed
