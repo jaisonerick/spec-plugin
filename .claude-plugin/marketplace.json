@@ -2,7 +2,7 @@
   "name": "nexaedge-marketplace",
   "metadata": {
     "description": "Plugins and skills for coding agents, on Claude Code, Codex and Antigravity.",
-    "version": "v49"
+    "version": "v50"
   },
   "owner": {
     "name": "Jaison Erick",

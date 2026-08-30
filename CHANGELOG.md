@@ -8,6 +8,11 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Marketplace v50] - 2026-08-30
+
+### Changed
+- Correct what the marketplace version is evidence of
+
 ## [Marketplace v49] - 2026-08-30
 
 ### Changed
