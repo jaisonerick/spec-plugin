@@ -80,7 +80,8 @@ python3 ~/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugin
 Versions are bumped by CI on merge to main. Do not bump them by hand.
 
 A plugin release bumps the marketplace version along with it. Entries in the
-generated catalogs carry only `name` and `source`, so a plugin release rewrites
-those files to something byte-identical: the marketplace version is the only
-field that moves, and a consumer that re-reads a catalog when it changes has
-nothing else to go on.
+generated catalogs carry only `name` and `source`, so a plugin release leaves
+those files otherwise byte-identical: the marketplace version is the only field
+in them that moves at all. Whether a given consumer reads it is that consumer's
+business — Claude's own ingestion appears to key off pushes to this repository,
+not off this field.
