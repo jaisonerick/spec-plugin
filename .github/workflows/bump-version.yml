@@ -68,8 +68,11 @@ jobs:
 
           echo "BUMPED_PLUGINS=$BUMPED_PLUGINS" >> "$GITHUB_ENV"
 
+      # A plugin bump leaves the marketplace manifest byte-identical, since its
+      # entries carry name and source only. Bump the marketplace alongside it,
+      # or a consumer watching that manifest never learns the plugin moved.
       - name: Bump marketplace version
-        if: steps.changes.outputs.marketplace_changed == 'true'
+        if: steps.changes.outputs.marketplace_changed == 'true' || steps.changes.outputs.changed_plugins != ''
         run: |
           CURRENT=$(jq -r '.marketplace.version // "0"' catalog.json)
           CURRENT_NUM=${CURRENT#v}
