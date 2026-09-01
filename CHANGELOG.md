@@ -8,6 +8,16 @@ This project maintains independent sequential versions (`v1`, `v2`, `v3`...):
 
 Versions are bumped automatically by CI on merge to main.
 
+## [Plugin: plaud v29] - 2026-09-01
+
+### Changed
+- Tell the user what the page can hear, and how to keep a voice out
+
+## [Marketplace v51] - 2026-09-01
+
+### Changed
+- Tell the user what the page can hear, and how to keep a voice out
+
 ## [Marketplace v50] - 2026-08-30
 
 ### Changed
