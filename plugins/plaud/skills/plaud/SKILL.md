@@ -144,9 +144,29 @@ It reads the files and asks nothing, so it costs nothing to run. **This does not
 
 A page opens in their browser with, for each unnamed voice, the stretches of the recording where it is the one speaking, and a field for the name. They play, they type, they save — each name registers as it is entered, so closing the tab halfway keeps what was done. When they finish, the transcripts here are rewritten with the names.
 
+The page also shows what the service already hears in each voice: who it is closest to, and which of the unnamed voices are one voice. That is there so somebody stops listening to a voice the service could place, and so naming one voice offers the name to the ones that measure the same. It is an indication and never the answer: the field still has to be filled by somebody who was in the room.
+
 **Names are typed as `Nome Sobrenome (Empresa)`**, which is the form the transcripts carry, and the people already known are offered as they type. Tell them to pick an existing entry when one fits: two spellings of one person become two people, and only a person can merge them back.
 
+**A name the service holds for somebody else's voice comes back refused**, saying whose voice it is and how far each of the two is. That is the store saying the name is wrong, and it is right often enough to be worth reading; when the person is sure anyway, the page has a "salvar mesmo assim" and the command has `--despite-timbre`. Do not reach for either on their behalf: whether they were in that room is not something you know.
+
 **Leave blank whatever nobody can place.** A guess puts a wrong name on a voice for everyone else using the service, in every transcript that voice ever appears in.
+
+## A voice the meeting did not have
+
+A recording catches whoever is near it: somebody who walks into the room, somebody talking at the next table. That voice has no name to give it, and it stays pending forever.
+
+Rule it out instead, on the page with "Não é da reunião", or without one:
+
+```bash
+"$PLAUD" speaker outside <recording-id> <key> --reason "garcom"
+```
+
+From then on every fetch and every sync of that recording leaves those turns out of the file. **Do not do this by editing the markdown.** A turn deleted by hand comes back the next time the recording is rendered, and the entry in the `voices:` block comes back with it; the verdict has to be recorded where the voices are.
+
+The reason is required and worth writing: in six months, what tells a voice left out for being somebody at the next table from one left out by mistake is the reason. Naming the voice later takes the verdict back.
+
+**Never rule out a voice on your own judgement.** A quiet voice that says little is usually somebody who was in the meeting, and once ruled out it disappears from the transcript without a trace anybody reading the file would notice. Propose it, with what the voice says, and let them decide.
 
 `speaker pending` also reports transcripts that hold unnamed voices and do not say which recording they came from. Those were written before the file carried that, and there is nothing to ask about them; `"$PLAUD" sync` stamps it in and decodes nothing.
 
